@@ -1,0 +1,34 @@
+[12:40:29][W01] [public-ecr-aws-docker-] START  window=300s  proto=redis
+[12:40:29][W02] [public-ecr-aws-docker-] START  window=3600s  proto=http
+[12:40:29][W03] [public-ecr-aws-docker-] START  window=300s  proto=http
+[12:40:29][W00] [public-ecr-aws-nginx-n] START  window=300s  proto=http
+[12:40:29][W04] [public-ecr-aws-docker-] START  window=300s  proto=http
+[12:40:29][W05] [public-ecr-aws-docker-] START  window=300s  proto=http
+[12:40:29][W06] [public-ecr-aws-docker-] START  window=300s  proto=db_pgbench
+[12:40:29][W07] [public-ecr-aws-docker-] START  window=300s  proto=stress_ng
+[12:40:29][W08] [public-ecr-aws-docker-] START  window=300s  proto=http
+[12:40:29][W09] [public-ecr-aws-elastic] START  window=3600s  proto=http_es
+[12:40:49][W09] [public-ecr-aws-elastic] OCI  layers=10 size=705.9MB lang=java env_vars=2 ports=0
+[12:40:50][W00] [public-ecr-aws-nginx-n] OCI  layers=8 size=24.8MB lang=c env_vars=7 ports=0
+[12:41:00][W02] [public-ecr-aws-docker-] OCI  layers=5 size=70.6MB lang=java env_vars=6 ports=0
+[12:41:06][W07] [public-ecr-aws-docker-] OCI  layers=1 size=3.3MB lang=c env_vars=1 ports=0
+[12:41:09][W01] [public-ecr-aws-docker-] OCI  layers=7 size=15.5MB lang=c env_vars=2 ports=0
+[12:41:12][W06] [public-ecr-aws-docker-] OCI  layers=11 size=104.9MB lang=c env_vars=8 ports=0
+[12:41:12][W08] [public-ecr-aws-docker-] OCI  layers=4 size=37.6MB lang=c env_vars=8 ports=0
+[12:41:15][W04] [public-ecr-aws-docker-] OCI  layers=4 size=46.1MB lang=js env_vars=3 ports=0
+[12:41:17][W03] [public-ecr-aws-docker-] OCI  layers=4 size=17.2MB lang=python env_vars=5 ports=0
+[12:41:20][W05] [public-ecr-aws-docker-] OCI  layers=5 size=69.9MB lang=go env_vars=4 ports=0
+[12:41:28][W00] [public-ecr-aws-nginx-n] STARTUP  n=4  p99=5m  max=5m
+[12:41:42][W07] [public-ecr-aws-docker-] STARTUP  n=4  p99=1m  max=1m
+[12:41:47][W01] [public-ecr-aws-docker-] STARTUP  n=2  p99=6m  max=6m
+[12:42:58][W09] [public-ecr-aws-elastic] STARTUP  n=22  p99=2647m  max=2647m
+[12:43:07][W02] [public-ecr-aws-docker-] FAIL deploy
+[12:43:17][W08] [public-ecr-aws-docker-] FAIL deploy
+[12:43:17][W06] [public-ecr-aws-docker-] FAIL deploy
+[12:43:19][W04] [public-ecr-aws-docker-] FAIL deploy
+[12:43:22][W03] [public-ecr-aws-docker-] FAIL deploy
+[12:43:25][W01] [public-ecr-aws-docker-] OK  p50=765.0m p99=990.0m sust_p50=989.0m startup_p99=6.0m startup_ratio=0.0 n=19
+[12:43:25][W05] [public-ecr-aws-docker-] FAIL deploy
+[12:45:59][W00] [public-ecr-aws-nginx-n] OK  p50=3.0m p99=5.0m sust_p50=3.0m startup_p99=5.0m startup_ratio=1.7 n=53
+[12:46:13][W07] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m startup_p99=1.0m startup_ratio=10.0 n=53
+[12:47:59][W09] [public-ecr-aws-elastic] OK  p50=5.0m p99=9.0m sust_p50=5.0m startup_p99=2647.0m startup_ratio=529.4 n=59

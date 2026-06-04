@@ -1,0 +1,30 @@
+Phase 1-1 AWS Parallel — Batch A (20 images) Summary
+Generated : 2026-06-04T11:34:24.230002
+Duration  : 713.8s  (0.20h)
+Images    : 20 OK  /  0 failed
+
+Image                                  proto         req(m)  lim(m)  sust_p50  start_p99  ratio     n
+─────────────────────────────────────────────────────────────────────────────────────────────────────
+public.ecr.aws/docker/library/haproxy:alpine stress_ng        0.5     2.0       0.5        2.0    4.0     6
+public.ecr.aws/docker/library/eclipse-temurin:21-alpine batch            0.0     0.0       0.0        2.0   20.0    53
+public.ecr.aws/docker/library/redis:7-alpine redis            5.5     6.0       5.5        6.0    1.1     6
+public.ecr.aws/docker/library/python:3.11 http            12.0    27.4      12.0       31.0    2.6    53
+public.ecr.aws/docker/library/varnish:alpine http             8.0    15.0       8.0       84.0   10.5    53
+public.ecr.aws/docker/library/eclipse-temurin:17-jre-alpine batch            0.0     1.0       0.0        2.0   20.0    53
+public.ecr.aws/bitnami/keycloak:23     http             2.0     8.0       2.0        2.0    1.0    31
+public.ecr.aws/docker/library/python:3.12-slim http            12.0    32.0      12.0       32.0    2.7    53
+public.ecr.aws/docker/library/nginx:alpine http             3.0     5.0       3.0        0.0    0.0    53
+public.ecr.aws/elastic/elasticsearch:8.11.0 http_es        102.0  2614.0     109.0     2622.0   24.1    53
+public.ecr.aws/docker/library/httpd:alpine http             5.0    10.0       5.0        4.0    0.8    53
+public.ecr.aws/docker/library/gradle:8-jdk21-alpine batch            0.0     0.0       0.0        2.0   20.0    53
+public.ecr.aws/docker/library/python:3.9-slim http            15.0    29.0      15.0       27.0    1.8    53
+public.ecr.aws/docker/library/maven:3.9-eclipse-temurin-21-alpine batch            0.0     0.0       0.0        0.0    0.0    53
+public.ecr.aws/docker/library/eclipse-temurin:21-jre-alpine batch            0.0     0.0       0.0        0.0    0.0    53
+public.ecr.aws/docker/library/python:3.10-slim http            13.0    27.4      12.5       30.0    2.4    53
+public.ecr.aws/docker/library/memcached:alpine memcached     3682.0  3727.0    3679.0        2.0    0.0    53
+public.ecr.aws/docker/library/python:3.12-alpine http            12.0    25.0      12.0        1.0    0.1    53
+public.ecr.aws/docker/library/tomcat:10-jre21-temurin-jammy http            19.0    54.0      19.0      189.0    9.9    53
+public.ecr.aws/docker/library/python:3.11-slim http            12.0    23.0      11.0        1.0    0.1    53
+
+Dataset : /home/ubuntu/zero-telemetry-cpu/data/dataset_a.csv
+Traces  : /home/ubuntu/zero-telemetry-cpu/data/cpu_traces

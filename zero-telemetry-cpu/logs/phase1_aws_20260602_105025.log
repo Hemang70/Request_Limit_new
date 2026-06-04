@@ -1,0 +1,30 @@
+[10:50:25][W00] [nginx-alpine] START  window=300s  proto=http
+[10:50:25][W01] [redis-7-alpine] START  window=300s  proto=redis
+[10:50:25][W02] [openjdk-21-slim] START  window=3600s  proto=http
+[10:50:25][W03] [python-3-12-alpine] START  window=300s  proto=http
+[10:50:25][W04] [node-20-alpine] START  window=300s  proto=http
+[10:50:25][W05] [golang-1-22-alpine] START  window=300s  proto=http
+[10:50:25][W06] [postgres-16-alpine] START  window=300s  proto=db_pgbench
+[10:50:25][W07] [alpine-3-19] START  window=300s  proto=stress_ng
+[10:50:25][W08] [ruby-3-3-alpine] START  window=300s  proto=http
+[10:50:25][W09] [elasticsearch-8-11-0] START  window=3600s  proto=http_es
+[10:50:58][W01] [redis-7-alpine] OCI  layers=0 size=0.0MB lang=c env_vars=0 ports=0
+[10:50:58][W04] [node-20-alpine] OCI  layers=0 size=0.0MB lang=c env_vars=0 ports=0
+[10:50:58][W03] [python-3-12-alpine] OCI  layers=0 size=0.0MB lang=c env_vars=0 ports=0
+[10:50:58][W06] [postgres-16-alpine] OCI  layers=0 size=0.0MB lang=c env_vars=0 ports=0
+[10:50:58][W00] [nginx-alpine] OCI  layers=0 size=0.0MB lang=c env_vars=0 ports=0
+[10:50:58][W02] [openjdk-21-slim] OCI  layers=0 size=0.0MB lang=java env_vars=0 ports=0
+[10:50:58][W08] [ruby-3-3-alpine] OCI  layers=0 size=0.0MB lang=c env_vars=0 ports=0
+[10:50:58][W09] [elasticsearch-8-11-0] OCI  layers=0 size=0.0MB lang=java env_vars=0 ports=0
+[10:50:58][W07] [alpine-3-19] OCI  layers=0 size=0.0MB lang=c env_vars=0 ports=0
+[10:50:58][W05] [golang-1-22-alpine] OCI  layers=0 size=0.0MB lang=c env_vars=0 ports=0
+[10:50:59][W04] [node-20-alpine] FAIL deploy
+[10:50:59][W01] [redis-7-alpine] FAIL deploy
+[10:50:59][W03] [python-3-12-alpine] FAIL deploy
+[10:50:59][W06] [postgres-16-alpine] FAIL deploy
+[10:50:59][W00] [nginx-alpine] FAIL deploy
+[10:50:59][W08] [ruby-3-3-alpine] FAIL deploy
+[10:50:59][W02] [openjdk-21-slim] FAIL deploy
+[10:50:59][W09] [elasticsearch-8-11-0] FAIL deploy
+[10:50:59][W05] [golang-1-22-alpine] FAIL deploy
+[10:53:02][W07] [alpine-3-19] FAIL deploy

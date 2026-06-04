@@ -1,0 +1,18 @@
+[12:05:37][W00] [public-ecr-aws-nginx-n] START  window=300s  proto=http
+[12:05:37][W01] [public-ecr-aws-docker-] START  window=300s  proto=redis
+[12:05:37][W02] [public-ecr-aws-docker-] START  window=3600s  proto=http
+[12:05:37][W03] [public-ecr-aws-docker-] START  window=300s  proto=http
+[12:05:37][W04] [public-ecr-aws-docker-] START  window=300s  proto=http
+[12:05:37][W05] [public-ecr-aws-docker-] START  window=300s  proto=http
+[12:05:59][W00] [public-ecr-aws-nginx-n] OCI  layers=8 size=24.8MB lang=c env_vars=7 ports=0
+[12:05:59][W00] [public-ecr-aws-nginx-n] FAIL deploy
+[12:06:09][W02] [public-ecr-aws-docker-] OCI  layers=5 size=70.6MB lang=java env_vars=6 ports=0
+[12:06:09][W02] [public-ecr-aws-docker-] FAIL deploy
+[12:06:19][W01] [public-ecr-aws-docker-] OCI  layers=7 size=15.5MB lang=c env_vars=2 ports=0
+[12:06:19][W01] [public-ecr-aws-docker-] FAIL deploy
+[12:06:24][W04] [public-ecr-aws-docker-] OCI  layers=4 size=46.1MB lang=js env_vars=3 ports=0
+[12:06:24][W04] [public-ecr-aws-docker-] FAIL deploy
+[12:06:26][W03] [public-ecr-aws-docker-] OCI  layers=4 size=17.2MB lang=python env_vars=5 ports=0
+[12:06:26][W03] [public-ecr-aws-docker-] FAIL deploy
+[12:06:28][W05] [public-ecr-aws-docker-] OCI  layers=5 size=69.9MB lang=go env_vars=4 ports=0
+[12:06:28][W05] [public-ecr-aws-docker-] FAIL deploy

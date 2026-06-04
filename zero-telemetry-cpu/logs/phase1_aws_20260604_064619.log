@@ -1,0 +1,40 @@
+[06:46:19][W00] [public-ecr-aws-nginx-n] START  window=300s  proto=http
+[06:46:19][W01] [public-ecr-aws-docker-] START  window=300s  proto=redis
+[06:46:19][W02] [public-ecr-aws-docker-] START  window=300s  proto=http
+[06:46:19][W03] [public-ecr-aws-docker-] START  window=300s  proto=http
+[06:46:19][W05] [public-ecr-aws-docker-] START  window=300s  proto=http
+[06:46:19][W04] [public-ecr-aws-docker-] START  window=300s  proto=http
+[06:46:19][W06] [public-ecr-aws-docker-] START  window=300s  proto=db_pgbench
+[06:46:19][W07] [public-ecr-aws-docker-] START  window=300s  proto=stress_ng
+[06:46:19][W09] [public-ecr-aws-elastic] START  window=300s  proto=http_es
+[06:46:19][W08] [public-ecr-aws-docker-] START  window=300s  proto=http
+[06:46:38][W09] [public-ecr-aws-elastic] OCI  layers=10 size=705.9MB lang=java env_vars=2 ports=0
+[06:46:41][W00] [public-ecr-aws-nginx-n] OCI  layers=8 size=24.8MB lang=c env_vars=7 ports=0
+[06:46:52][W02] [public-ecr-aws-docker-] OCI  layers=5 size=70.6MB lang=java env_vars=6 ports=0
+[06:47:01][W01] [public-ecr-aws-docker-] OCI  layers=7 size=15.5MB lang=c env_vars=2 ports=0
+[06:47:04][W07] [public-ecr-aws-docker-] OCI  layers=1 size=3.3MB lang=c env_vars=1 ports=0
+[06:47:07][W03] [public-ecr-aws-docker-] OCI  layers=4 size=17.2MB lang=python env_vars=5 ports=0
+[06:47:10][W04] [public-ecr-aws-docker-] OCI  layers=4 size=46.1MB lang=js env_vars=3 ports=0
+[06:47:11][W06] [public-ecr-aws-docker-] OCI  layers=11 size=104.9MB lang=c env_vars=8 ports=0
+[06:47:13][W08] [public-ecr-aws-docker-] OCI  layers=4 size=37.6MB lang=c env_vars=8 ports=0
+[06:47:15][W09] [public-ecr-aws-elastic] STARTUP  n=3  p99=2642m  max=2642m
+[06:47:17][W00] [public-ecr-aws-nginx-n] STARTUP  n=3  p99=6m  max=6m
+[06:47:20][W05] [public-ecr-aws-docker-] OCI  layers=5 size=69.9MB lang=go env_vars=4 ports=0
+[06:47:29][W02] [public-ecr-aws-docker-] STARTUP  n=3  p99=0m  max=0m
+[06:47:37][W01] [public-ecr-aws-docker-] STARTUP  n=4  p99=6m  max=6m
+[06:47:41][W07] [public-ecr-aws-docker-] STARTUP  n=2  p99=2m  max=2m
+[06:47:44][W03] [public-ecr-aws-docker-] STARTUP  n=3  p99=2m  max=2m
+[06:47:46][W09] [public-ecr-aws-elastic] OK  p50=3.5m p99=4.0m sust_p50=3.5m startup_p99=2642.0m startup_ratio=754.9 n=6
+[06:47:46][W04] [public-ecr-aws-docker-] STARTUP  n=3  p99=1m  max=1m
+[06:47:47][W06] [public-ecr-aws-docker-] STARTUP  n=3  p99=90m  max=90m
+[06:47:49][W08] [public-ecr-aws-docker-] STARTUP  n=4  p99=1m  max=1m
+[06:47:56][W05] [public-ecr-aws-docker-] STARTUP  n=2  p99=1m  max=1m
+[06:48:18][W06] [public-ecr-aws-docker-] OK  p50=3.0m p99=5.0m sust_p50=3.0m startup_p99=90.0m startup_ratio=30.0 n=6
+[06:49:14][W01] [public-ecr-aws-docker-] OK  p50=899.0m p99=992.0m sust_p50=899.0m startup_p99=6.0m startup_ratio=0.0 n=19
+[06:51:48][W00] [public-ecr-aws-nginx-n] OK  p50=3.0m p99=5.0m sust_p50=3.0m startup_p99=6.0m startup_ratio=2.0 n=53
+[06:51:59][W02] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m startup_p99=0.0m startup_ratio=0.0 n=53
+[06:52:11][W07] [public-ecr-aws-docker-] OK  p50=0.0m p99=1.0m sust_p50=0.0m startup_p99=2.0m startup_ratio=20.0 n=53
+[06:52:15][W03] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m startup_p99=2.0m startup_ratio=20.0 n=53
+[06:52:17][W04] [public-ecr-aws-docker-] OK  p50=0.0m p99=1.0m sust_p50=0.0m startup_p99=1.0m startup_ratio=10.0 n=53
+[06:52:19][W08] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m startup_p99=1.0m startup_ratio=10.0 n=53
+[06:52:27][W05] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.5m sust_p50=0.0m startup_p99=1.0m startup_ratio=10.0 n=53

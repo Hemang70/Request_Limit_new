@@ -1,0 +1,13 @@
+[08:10:29][W00] [public-ecr-aws-docker-] START  window=300s  proto=batch
+[08:10:29][W01] [public-ecr-aws-prometh] START  window=300s  proto=http
+[08:10:29][W02] [public-ecr-aws-prometh] START  window=300s  proto=http
+[08:10:29][W03] [public-ecr-aws-docker-] START  window=300s  proto=stress_ng
+[08:10:30][W01] [public-ecr-aws-prometh] OCI  layers=0 size=0.0MB
+[08:10:30][W02] [public-ecr-aws-prometh] OCI  layers=0 size=0.0MB
+[08:10:33][W03] [public-ecr-aws-docker-] OCI  layers=8 size=0.0MB
+[08:10:43][W00] [public-ecr-aws-docker-] OCI  layers=5 size=0.0MB
+[08:11:19][W00] [public-ecr-aws-docker-] STARTUP  n=4  p99=2m
+[08:11:56][W03] [public-ecr-aws-docker-] STARTUP  n=0  p99=0m
+[08:12:27][W03] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m
+[08:13:06][W02] [public-ecr-aws-prometh] FAIL deploy
+[08:13:06][W01] [public-ecr-aws-prometh] FAIL deploy

@@ -1,0 +1,17 @@
+Phase 1-3 AWS Parallel — Batch C (Recovery) Summary
+Generated : 2026-06-04T07:41:02.289390
+Duration  : 363.5s  (0.10h)
+Images    : 4 OK  /  4 failed  [public.ecr.aws/grafana/grafana:latest, public.ecr.aws/prometheus/alertmanager:v0.26.0, public.ecr.aws/prometheus/prometheus:v2.48.0, public.ecr.aws/docker/library/cassandra:4]
+
+Image                                  proto         req(m)  lim(m)  sust_p50  start_p99  ratio     n
+─────────────────────────────────────────────────────────────────────────────────────────────────────
+public.ecr.aws/docker/library/node:20-alpine http             3.0     6.0       4.0        7.0    1.8    53
+public.ecr.aws/docker/library/openjdk:21-slim batch            0.0     0.0       0.0        0.0    0.0    53
+public.ecr.aws/docker/library/node:18-alpine http             3.0     6.0       3.0        5.0    1.7    53
+public.ecr.aws/docker/library/nginx:1.27-alpine http             3.0     5.0       3.0        0.0    0.0    53
+
+Dataset : /home/ubuntu/zero-telemetry-cpu/data/dataset_c.csv
+Traces  : /home/ubuntu/zero-telemetry-cpu/data/cpu_traces
+
+Merge both batches after collection:
+  python3 merge_datasets.py  # or pandas concat in phase2.py

@@ -1,0 +1,33 @@
+[12:24:27][W00] [public-ecr-aws-nginx-n] START  window=300s  proto=http
+[12:24:27][W01] [public-ecr-aws-docker-] START  window=300s  proto=redis
+[12:24:27][W02] [public-ecr-aws-docker-] START  window=3600s  proto=http
+[12:24:27][W03] [public-ecr-aws-docker-] START  window=300s  proto=http
+[12:24:27][W04] [public-ecr-aws-docker-] START  window=300s  proto=http
+[12:24:27][W05] [public-ecr-aws-docker-] START  window=300s  proto=http
+[12:24:27][W06] [public-ecr-aws-docker-] START  window=300s  proto=db_pgbench
+[12:24:27][W07] [public-ecr-aws-docker-] START  window=300s  proto=stress_ng
+[12:24:27][W08] [public-ecr-aws-docker-] START  window=300s  proto=http
+[12:24:27][W09] [public-ecr-aws-elastic] START  window=3600s  proto=http_es
+[12:24:47][W09] [public-ecr-aws-elastic] OCI  layers=10 size=705.9MB lang=java env_vars=2 ports=0
+[12:24:49][W00] [public-ecr-aws-nginx-n] OCI  layers=8 size=24.8MB lang=c env_vars=7 ports=0
+[12:24:58][W02] [public-ecr-aws-docker-] OCI  layers=5 size=70.6MB lang=java env_vars=6 ports=0
+[12:25:04][W07] [public-ecr-aws-docker-] OCI  layers=1 size=3.3MB lang=c env_vars=1 ports=0
+[12:25:07][W01] [public-ecr-aws-docker-] OCI  layers=7 size=15.5MB lang=c env_vars=2 ports=0
+[12:25:10][W08] [public-ecr-aws-docker-] OCI  layers=4 size=37.6MB lang=c env_vars=8 ports=0
+[12:25:10][W06] [public-ecr-aws-docker-] OCI  layers=11 size=104.9MB lang=c env_vars=8 ports=0
+[12:25:14][W04] [public-ecr-aws-docker-] OCI  layers=4 size=46.1MB lang=js env_vars=3 ports=0
+[12:25:15][W03] [public-ecr-aws-docker-] OCI  layers=4 size=17.2MB lang=python env_vars=5 ports=0
+[12:25:17][W05] [public-ecr-aws-docker-] OCI  layers=5 size=69.9MB lang=go env_vars=4 ports=0
+[12:25:31][W00] [public-ecr-aws-nginx-n] STARTUP  n=2  p99=0m  max=0m
+[12:25:51][W01] [public-ecr-aws-docker-] STARTUP  n=2  p99=5m  max=5m
+[12:26:00][W08] ERROR public.ecr.aws/docker/library/ruby:3.3-alpine: max() iterable argument is empty
+[12:26:09][W06] ERROR public.ecr.aws/docker/library/postgres:16-alpine: max() iterable argument is empty
+[12:26:14][W03] ERROR public.ecr.aws/docker/library/python:3.12-alpine: max() iterable argument is empty
+[12:26:16][W05] ERROR public.ecr.aws/docker/library/golang:1.22-alpine: max() iterable argument is empty
+[12:26:19][W04] ERROR public.ecr.aws/docker/library/node:20-alpine: max() iterable argument is empty
+[12:27:03][W02] [public-ecr-aws-docker-] FAIL deploy
+[12:27:09][W07] [public-ecr-aws-docker-] FAIL deploy
+[12:27:33][W01] [public-ecr-aws-docker-] OK  p50=979.0m p99=991.0m sust_p50=989.0m startup_p99=5.0m startup_ratio=0.0 n=20
+[12:27:51][W09] [public-ecr-aws-elastic] STARTUP  n=20  p99=3741m  max=3741m
+[12:30:02][W00] [public-ecr-aws-nginx-n] OK  p50=3.0m p99=6.0m sust_p50=3.0m startup_p99=0.0m startup_ratio=0.0 n=53
+[12:32:52][W09] [public-ecr-aws-elastic] OK  p50=5.0m p99=8.0m sust_p50=5.0m startup_p99=3741.0m startup_ratio=748.2 n=59

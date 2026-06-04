@@ -1,0 +1,73 @@
+[06:56:50][W00] [public-ecr-aws-docker-] START  window=300s  proto=http
+[06:56:50][W01] [public-ecr-aws-verdacc] START  window=300s  proto=http
+[06:56:50][W02] [public-ecr-aws-docker-] START  window=300s  proto=batch
+[06:56:50][W03] [public-ecr-aws-docker-] START  window=300s  proto=batch
+[06:56:50][W04] [public-ecr-aws-docker-] START  window=300s  proto=http
+[06:56:50][W05] [public-ecr-aws-docker-] START  window=300s  proto=http
+[06:56:50][W06] [public-ecr-aws-grafana] START  window=300s  proto=http
+[06:56:50][W07] [public-ecr-aws-prometh] START  window=300s  proto=http
+[06:56:50][W08] [public-ecr-aws-prometh] START  window=300s  proto=http
+[06:56:50][W09] [public-ecr-aws-docker-] START  window=300s  proto=batch
+[06:56:51][W01] [public-ecr-aws-verdacc] OCI  layers=0 size=0.0MB lang=js ports=0
+[06:56:51][W06] [public-ecr-aws-grafana] OCI  layers=0 size=0.0MB lang=go ports=0
+[06:56:51][W08] [public-ecr-aws-prometh] OCI  layers=0 size=0.0MB lang=go ports=0
+[06:56:52][W07] [public-ecr-aws-prometh] OCI  layers=0 size=0.0MB lang=go ports=0
+[06:57:16][W00] [public-ecr-aws-docker-] OCI  layers=10 size=227.0MB lang=js ports=0
+[06:57:20][W09] [public-ecr-aws-docker-] OCI  layers=3 size=333.3MB lang=go ports=0
+[06:57:34][W05] [public-ecr-aws-docker-] OCI  layers=4 size=50.5MB lang=go ports=0
+[06:57:35][W02] [public-ecr-aws-docker-] OCI  layers=4 size=46.1MB lang=js ports=0
+[06:57:36][W02] [public-ecr-aws-docker-] FAIL deploy
+[06:57:36][W02] [public-ecr-aws-docker-] START  window=300s  proto=db_cassandra
+[06:57:36][W04] [public-ecr-aws-docker-] OCI  layers=5 size=22.9MB lang=c ports=0
+[06:57:37][W03] [public-ecr-aws-docker-] OCI  layers=4 size=42.8MB lang=js ports=0
+[06:57:37][W03] [public-ecr-aws-docker-] FAIL deploy
+[06:57:37][W03] [public-ecr-aws-docker-] START  window=300s  proto=http
+[06:58:01][W03] [public-ecr-aws-docker-] OCI  layers=9 size=105.7MB lang=other ports=0
+[06:58:13][W02] [public-ecr-aws-docker-] OCI  layers=8 size=142.3MB lang=java ports=0
+[06:58:17][W05] [public-ecr-aws-docker-] STARTUP  n=3  p99=0m  max=0m
+[06:58:18][W04] [public-ecr-aws-docker-] STARTUP  n=3  p99=5m  max=5m
+[06:58:28][W09] [public-ecr-aws-docker-] STARTUP  n=2  p99=0m  max=0m
+[06:58:35][W00] [public-ecr-aws-docker-] STARTUP  n=4  p99=596m  max=596m
+[06:58:54][W03] [public-ecr-aws-docker-] STARTUP  n=4  p99=70m  max=70m
+[06:58:56][W06] [public-ecr-aws-grafana] FAIL deploy
+[06:58:56][W06] [public-ecr-aws-docker-] START  window=300s  proto=stress_ng
+[06:58:56][W01] [public-ecr-aws-verdacc] FAIL deploy
+[06:58:56][W01] [public-ecr-aws-docker-] START  window=300s  proto=db_mongo
+[06:58:56][W07] [public-ecr-aws-prometh] FAIL deploy
+[06:58:56][W07] [public-ecr-aws-docker-] START  window=300s  proto=mq_rabbit
+[06:58:56][W08] [public-ecr-aws-prometh] FAIL deploy
+[06:58:56][W08] [public-ecr-aws-docker-] START  window=300s  proto=http
+[06:59:01][W02] ERROR public.ecr.aws/docker/library/cassandra:4: max() iterable argument is empty
+[06:59:32][W01] [public-ecr-aws-docker-] OCI  layers=8 size=279.6MB lang=go ports=0
+[06:59:33][W06] [public-ecr-aws-docker-] OCI  layers=1 size=3.3MB lang=c ports=0
+[06:59:50][W07] [public-ecr-aws-docker-] OCI  layers=10 size=82.0MB lang=c ports=0
+[06:59:58][W08] [public-ecr-aws-docker-] OCI  layers=24 size=256.4MB lang=c ports=0
+[07:00:10][W06] [public-ecr-aws-docker-] STARTUP  n=2  p99=1m  max=1m
+[07:00:19][W01] [public-ecr-aws-docker-] STARTUP  n=4  p99=298m  max=298m
+[07:00:37][W07] [public-ecr-aws-docker-] STARTUP  n=1  p99=4m  max=4m
+[07:00:55][W01] [public-ecr-aws-docker-] OK  p50=4.0m p99=298.0m sust_p50=4.0m ratio=74.5 n=7
+[07:01:00][W08] [public-ecr-aws-docker-] STARTUP  n=3  p99=45m  max=45m
+[07:01:08][W07] [public-ecr-aws-docker-] OK  p50=3.0m p99=4.0m sust_p50=3.0m ratio=1.3 n=6
+[07:02:48][W05] [public-ecr-aws-docker-] OK  p50=17.0m p99=33.0m sust_p50=17.0m ratio=0.0 n=53
+[07:02:48][W05] [public-ecr-aws-docker-] START  window=300s  proto=db_sysbench
+[07:02:49][W04] [public-ecr-aws-docker-] OK  p50=12.0m p99=23.0m sust_p50=12.0m ratio=0.4 n=53
+[07:02:49][W04] [public-ecr-aws-docker-] START  window=300s  proto=db_sysbench
+[07:02:59][W09] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m ratio=0.0 n=53
+[07:02:59][W09] [public-ecr-aws-docker-] START  window=300s  proto=batch
+[07:03:06][W00] [public-ecr-aws-docker-] OK  p50=905.0m p99=1210.0m sust_p50=910.0m ratio=0.7 n=53
+[07:03:06][W00] [public-ecr-aws-docker-] START  window=300s  proto=db_pgbench
+[07:03:11][W05] [public-ecr-aws-docker-] OCI  layers=10 size=227.2MB lang=c ports=0
+[07:03:23][W04] [public-ecr-aws-docker-] OCI  layers=8 size=99.0MB lang=c ports=0
+[07:03:25][W03] [public-ecr-aws-docker-] OK  p50=12.0m p99=41.2m sust_p50=12.0m ratio=5.8 n=53
+[07:03:49][W00] [public-ecr-aws-docker-] OCI  layers=11 size=104.9MB lang=c ports=0
+[07:03:51][W09] [public-ecr-aws-docker-] OCI  layers=13 size=248.2MB lang=other ports=0
+[07:04:04][W05] [public-ecr-aws-docker-] STARTUP  n=4  p99=274m  max=274m
+[07:04:10][W04] [public-ecr-aws-docker-] STARTUP  n=2  p99=225m  max=225m
+[07:04:26][W00] [public-ecr-aws-docker-] STARTUP  n=2  p99=1m  max=1m
+[07:04:42][W06] [public-ecr-aws-docker-] OK  p50=4000.0m p99=4001.0m sust_p50=4000.0m ratio=0.0 n=53
+[07:04:54][W09] [public-ecr-aws-docker-] STARTUP  n=4  p99=2m  max=2m
+[07:04:57][W00] [public-ecr-aws-docker-] OK  p50=1.0m p99=3.0m sust_p50=1.0m ratio=1.0 n=6
+[07:05:32][W08] [public-ecr-aws-docker-] OK  p50=19.0m p99=35.0m sust_p50=19.0m ratio=2.4 n=53
+[07:08:36][W05] [public-ecr-aws-docker-] OK  p50=1664.0m p99=1937.0m sust_p50=1482.0m ratio=0.2 n=53
+[07:08:42][W04] [public-ecr-aws-docker-] OK  p50=4492.0m p99=4637.0m sust_p50=2946.0m ratio=0.1 n=53
+[07:09:26][W09] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m ratio=20.0 n=53

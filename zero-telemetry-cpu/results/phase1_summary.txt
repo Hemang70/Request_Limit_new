@@ -1,0 +1,29 @@
+Phase 1 AWS Parallel — Ground-Truth Dataset Summary
+Generated : 2026-06-04T06:52:27.553042
+Duration  : 368.3s  (0.10h)
+Images    : 10 OK  /  0 failed
+Columns   : 90 (skopeo OCI + startup + steady-state + carbon)
+
+Image                                  proto        layers  req(m)  lim(m)  sust_p50  start_p99  ratio     n       CO2_kg
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+public.ecr.aws/elastic/elasticsearch:8.11.0 http_es          10     3.5     4.0       3.5     2642.0  754.9     6    9.913e-05
+public.ecr.aws/docker/library/postgres:16-alpine db_pgbench       11     3.0     5.0       3.0       90.0   30.0     6    9.914e-05
+public.ecr.aws/docker/library/redis:7-alpine redis             7   899.0   992.0     899.0        6.0    0.0    19    3.496e-04
+public.ecr.aws/nginx/nginx:alpine      http              8     3.0     5.0       3.0        6.0    2.0    53    8.758e-04
+public.ecr.aws/docker/library/eclipse-temurin:21-jre-alpine http              5     0.0     0.0       0.0        0.0    0.0    53    8.752e-04
+public.ecr.aws/docker/library/alpine:3.19 stress_ng         1     0.0     1.0       0.0        2.0   20.0    53    8.752e-04
+public.ecr.aws/docker/library/python:3.12-alpine http              4     0.0     0.0       0.0        2.0   20.0    53    8.753e-04
+public.ecr.aws/docker/library/node:20-alpine http              4     0.0     1.0       0.0        1.0   10.0    53    8.751e-04
+public.ecr.aws/docker/library/ruby:3.3-alpine http              4     0.0     0.0       0.0        1.0   10.0    53    8.753e-04
+public.ecr.aws/docker/library/golang:1.22-alpine http              5     0.0     0.5       0.0        1.0   10.0    53    8.752e-04
+
+Column legend:
+  req(m)     = cpu_p50_millicores  → recommended cpu.request
+  lim(m)     = cpu_p99_millicores  → recommended cpu.limit
+  sust_p50   = cpu_sustained_p50_m  (Phase B steady state)
+  start_p99  = startup_cpu_p99_m   (warmup JIT spike indicator)
+  ratio      = cpu_startup_ratio   (start_p99 / sust_p50, >10 = JVM)
+
+Dataset  : /home/ubuntu/zero-telemetry-cpu/data/dataset.csv
+Traces   : /home/ubuntu/zero-telemetry-cpu/data/cpu_traces
+Log      : /home/ubuntu/zero-telemetry-cpu/logs/phase1_aws_20260604_064619.log

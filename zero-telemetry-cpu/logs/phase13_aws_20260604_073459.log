@@ -1,0 +1,28 @@
+[07:34:59][W00] [public-ecr-aws-docker-] START  window=300s  proto=batch
+[07:34:59][W01] [public-ecr-aws-docker-] START  window=300s  proto=http
+[07:34:59][W02] [public-ecr-aws-docker-] START  window=300s  proto=http
+[07:34:59][W03] [public-ecr-aws-grafana] START  window=300s  proto=http
+[07:34:59][W04] [public-ecr-aws-prometh] START  window=300s  proto=http
+[07:34:59][W05] [public-ecr-aws-prometh] START  window=300s  proto=http
+[07:34:59][W07] [public-ecr-aws-docker-] START  window=300s  proto=db_cassandra
+[07:34:59][W06] [public-ecr-aws-docker-] START  window=300s  proto=http
+[07:35:00][W05] [public-ecr-aws-prometh] OCI  layers=0 size=0.0MB lang=go ports=0
+[07:35:00][W04] [public-ecr-aws-prometh] OCI  layers=0 size=0.0MB lang=go ports=0
+[07:35:00][W03] [public-ecr-aws-grafana] OCI  layers=0 size=0.0MB lang=go ports=0
+[07:35:29][W07] [public-ecr-aws-docker-] OCI  layers=8 size=142.3MB lang=java ports=0
+[07:35:43][W00] [public-ecr-aws-docker-] OCI  layers=3 size=226.4MB lang=java ports=0
+[07:35:44][W02] [public-ecr-aws-docker-] OCI  layers=4 size=42.8MB lang=js ports=0
+[07:35:45][W01] [public-ecr-aws-docker-] OCI  layers=4 size=46.1MB lang=js ports=0
+[07:35:49][W06] [public-ecr-aws-docker-] OCI  layers=8 size=20.0MB lang=c ports=0
+[07:36:22][W01] [public-ecr-aws-docker-] STARTUP  n=4  p99=7m  max=7m
+[07:36:24][W00] [public-ecr-aws-docker-] STARTUP  n=2  p99=0m  max=0m
+[07:36:26][W02] [public-ecr-aws-docker-] STARTUP  n=2  p99=5m  max=5m
+[07:36:31][W06] [public-ecr-aws-docker-] STARTUP  n=3  p99=0m  max=0m
+[07:37:05][W03] [public-ecr-aws-grafana] FAIL deploy
+[07:37:05][W05] [public-ecr-aws-prometh] FAIL deploy
+[07:37:05][W04] [public-ecr-aws-prometh] FAIL deploy
+[07:37:24][W07] ERROR public.ecr.aws/docker/library/cassandra:4: max() iterable argument is empty
+[07:40:52][W01] [public-ecr-aws-docker-] OK  p50=3.0m p99=6.0m sust_p50=4.0m ratio=1.8 n=53
+[07:40:55][W00] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m ratio=0.0 n=53
+[07:40:57][W02] [public-ecr-aws-docker-] OK  p50=3.0m p99=6.0m sust_p50=3.0m ratio=1.7 n=53
+[07:41:02][W06] [public-ecr-aws-docker-] OK  p50=3.0m p99=5.0m sust_p50=3.0m ratio=0.0 n=53

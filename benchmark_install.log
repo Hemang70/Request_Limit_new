@@ -1,0 +1,54 @@
+
+[1mInstalling benchmark tools for 40-image dataset...[0m
+
+  [93m→[0m  Installing redis-tools...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Solving dependencies...
+The following additional packages will be installed:
+  liblzf1
+Suggested packages:
+  ruby-redis
+The following NEW packages will be installed:
+  liblzf1 redis-tools
+0 upgraded, 2 newly installed, 0 to remove and 31 not upgraded.
+Need to get 1377 kB of archives.
+After this operation, 7300 kB of additional disk space will be used.
+Get:1 http://ap-south-1.ec2.archive.ubuntu.com/ubuntu resolute/universe amd64v3 liblzf1 amd64 3.6-4build1 [7502 B]
+Get:2 http://ap-south-1.ec2.archive.ubuntu.com/ubuntu resolute/universe amd64v3 redis-tools amd64 5:8.0.5-1 [1370 kB]
+Fetched 1377 kB in 0s (51.4 MB/s)
+Selecting previously unselected package liblzf1:amd64.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 89096 files and directories currently installed.)
+Preparing to unpack .../liblzf1_3.6-4build1_amd64v3.deb ...
+Unpacking liblzf1:amd64 (3.6-4build1) ...
+Selecting previously unselected package redis-tools.
+Preparing to unpack .../redis-tools_5%3a8.0.5-1_amd64v3.deb ...
+Unpacking redis-tools (5:8.0.5-1) ...
+Setting up liblzf1:amd64 (3.6-4build1) ...
+Setting up redis-tools (5:8.0.5-1) ...
+Processing triggers for man-db (2.13.1-1build1) ...
+Processing triggers for libc-bin (2.43-2ubuntu2) ...
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+  [92m✔[0m  redis-benchmark: redis-benchmark 8.0.5
+  [93m→[0m  Installing memtier-benchmark...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Package libpcre3-dev is not available, but is referred to by another package.
+This may mean that the package is missing, has been obsoleted, or
+is only available from another source
+
+E: Package 'libpcre3-dev' has no installation candidate

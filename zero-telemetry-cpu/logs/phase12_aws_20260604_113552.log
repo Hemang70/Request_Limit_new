@@ -1,0 +1,80 @@
+[11:35:52][W00] [public-ecr-aws-docker-] START  window=300s  proto=http
+[11:35:52][W01] [public-ecr-aws-docker-] START  window=300s  proto=http
+[11:35:52][W02] [public-ecr-aws-docker-] START  window=300s  proto=http
+[11:35:52][W03] [public-ecr-aws-docker-] START  window=300s  proto=http
+[11:35:52][W04] [public-ecr-aws-docker-] START  window=300s  proto=http
+[11:35:52][W05] [public-ecr-aws-docker-] START  window=300s  proto=http
+[11:35:52][W06] [public-ecr-aws-docker-] START  window=300s  proto=batch
+[11:35:52][W07] [public-ecr-aws-docker-] START  window=300s  proto=batch
+[11:35:52][W08] [public-ecr-aws-docker-] START  window=300s  proto=db_pgbench
+[11:35:52][W09] [public-ecr-aws-docker-] START  window=300s  proto=db_mongo
+[11:36:17][W00] [public-ecr-aws-docker-] OCI  layers=10 size=227.0MB lang=js ports=0
+[11:36:19][W07] [public-ecr-aws-docker-] OCI  layers=3 size=333.3MB lang=other ports=0
+[11:36:25][W09] [public-ecr-aws-docker-] OCI  layers=8 size=279.6MB lang=go ports=0
+[11:36:30][W05] [public-ecr-aws-docker-] OCI  layers=4 size=50.5MB lang=go ports=0
+[11:36:31][W04] [public-ecr-aws-docker-] OCI  layers=5 size=22.9MB lang=c ports=0
+[11:36:34][W01] [public-ecr-aws-docker-] OCI  layers=8 size=20.0MB lang=c ports=0
+[11:36:37][W06] [public-ecr-aws-docker-] OCI  layers=3 size=226.4MB lang=java ports=0
+[11:36:38][W02] [public-ecr-aws-docker-] OCI  layers=4 size=46.1MB lang=js ports=0
+[11:36:40][W03] [public-ecr-aws-docker-] OCI  layers=4 size=42.8MB lang=js ports=0
+[11:36:41][W08] [public-ecr-aws-docker-] OCI  layers=11 size=104.9MB lang=c ports=0
+[11:36:54][W00] [public-ecr-aws-docker-] STARTUP  n=2  p99=546m  max=546m
+[11:36:55][W07] [public-ecr-aws-docker-] STARTUP  n=3  p99=1m  max=1m
+[11:37:03][W09] [public-ecr-aws-docker-] STARTUP  n=4  p99=254m  max=254m
+[11:37:07][W05] [public-ecr-aws-docker-] STARTUP  n=2  p99=18m  max=18m
+[11:37:08][W04] [public-ecr-aws-docker-] STARTUP  n=2  p99=9m  max=9m
+[11:37:10][W01] [public-ecr-aws-docker-] STARTUP  n=3  p99=5m  max=5m
+[11:37:13][W06] [public-ecr-aws-docker-] STARTUP  n=3  p99=0m  max=0m
+[11:37:14][W02] [public-ecr-aws-docker-] STARTUP  n=3  p99=2m  max=2m
+[11:37:16][W03] [public-ecr-aws-docker-] STARTUP  n=4  p99=7m  max=7m
+[11:37:19][W08] [public-ecr-aws-docker-] STARTUP  n=4  p99=94m  max=94m
+[11:37:39][W09] [public-ecr-aws-docker-] OK  p50=4.0m p99=5.0m sust_p50=4.0m ratio=63.5 n=7
+[11:37:39][W09] [public-ecr-aws-docker-] START  window=300s  proto=batch
+[11:37:50][W08] [public-ecr-aws-docker-] OK  p50=1.0m p99=3.9m sust_p50=1.0m ratio=94.0 n=6
+[11:37:50][W08] [public-ecr-aws-docker-] START  window=300s  proto=batch
+[11:38:20][W09] [public-ecr-aws-docker-] OCI  layers=1 size=28.4MB lang=c ports=0
+[11:38:46][W08] [public-ecr-aws-docker-] OCI  layers=1 size=26.9MB lang=c ports=0
+[11:39:01][W09] [public-ecr-aws-docker-] STARTUP  n=4  p99=1m  max=1m
+[11:39:23][W08] [public-ecr-aws-docker-] STARTUP  n=2  p99=0m  max=0m
+[11:41:25][W00] [public-ecr-aws-docker-] OK  p50=898.0m p99=1225.0m sust_p50=891.0m ratio=0.6 n=53
+[11:41:25][W00] [public-ecr-aws-docker-] START  window=300s  proto=http
+[11:41:26][W07] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m ratio=10.0 n=53
+[11:41:26][W07] [public-ecr-aws-docker-] START  window=300s  proto=batch
+[11:41:39][W05] [public-ecr-aws-docker-] OK  p50=18.0m p99=33.0m sust_p50=18.0m ratio=1.0 n=53
+[11:41:39][W04] [public-ecr-aws-docker-] OK  p50=12.0m p99=22.0m sust_p50=12.0m ratio=0.8 n=53
+[11:41:39][W05] [public-ecr-aws-docker-] START  window=300s  proto=http
+[11:41:39][W04] [public-ecr-aws-docker-] START  window=300s  proto=mq_rabbit
+[11:41:41][W01] [public-ecr-aws-docker-] OK  p50=3.0m p99=5.0m sust_p50=3.0m ratio=1.7 n=53
+[11:41:41][W01] [public-ecr-aws-docker-] START  window=300s  proto=db_sysbench
+[11:41:44][W06] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m ratio=0.0 n=53
+[11:41:44][W06] [public-ecr-aws-docker-] START  window=300s  proto=batch
+[11:41:45][W02] [public-ecr-aws-docker-] OK  p50=4.0m p99=6.0m sust_p50=4.0m ratio=0.5 n=53
+[11:41:45][W02] [public-ecr-aws-docker-] START  window=300s  proto=db_sysbench
+[11:41:46][W00] [public-ecr-aws-docker-] OCI  layers=9 size=105.7MB lang=other ports=0
+[11:41:47][W03] [public-ecr-aws-docker-] OK  p50=3.0m p99=6.0m sust_p50=3.0m ratio=2.3 n=53
+[11:41:47][W03] [public-ecr-aws-docker-] START  window=300s  proto=stress_ng
+[11:42:06][W02] [public-ecr-aws-docker-] OCI  layers=10 size=227.2MB lang=c ports=0
+[11:42:09][W01] [public-ecr-aws-docker-] OCI  layers=8 size=99.0MB lang=c ports=0
+[11:42:22][W04] [public-ecr-aws-docker-] OCI  layers=10 size=82.0MB lang=c ports=0
+[11:42:23][W00] [public-ecr-aws-docker-] STARTUP  n=2  p99=1m  max=1m
+[11:42:25][W06] [public-ecr-aws-docker-] OCI  layers=13 size=248.2MB lang=other ports=0
+[11:42:26][W07] [public-ecr-aws-docker-] OCI  layers=5 size=68.1MB lang=go ports=0
+[11:42:29][W05] [public-ecr-aws-docker-] OCI  layers=24 size=256.4MB lang=c ports=0
+[11:42:32][W03] [public-ecr-aws-docker-] OCI  layers=1 size=3.3MB lang=c ports=0
+[11:42:43][W02] [public-ecr-aws-docker-] STARTUP  n=3  p99=454m  max=454m
+[11:42:46][W01] [public-ecr-aws-docker-] STARTUP  n=4  p99=363m  max=363m
+[11:42:59][W04] [public-ecr-aws-docker-] STARTUP  n=3  p99=488m  max=488m
+[11:43:02][W06] [public-ecr-aws-docker-] STARTUP  n=4  p99=2m  max=2m
+[11:43:06][W05] [public-ecr-aws-docker-] STARTUP  n=2  p99=1m  max=1m
+[11:43:08][W07] [public-ecr-aws-docker-] STARTUP  n=2  p99=0m  max=0m
+[11:43:09][W03] [public-ecr-aws-docker-] STARTUP  n=2  p99=0m  max=0m
+[11:43:30][W04] [public-ecr-aws-docker-] OK  p50=2.5m p99=3.0m sust_p50=2.5m ratio=99.9 n=6
+[11:43:32][W09] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m ratio=10.0 n=53
+[11:43:54][W08] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m ratio=0.0 n=53
+[11:46:57][W00] [public-ecr-aws-docker-] OK  p50=12.0m p99=22.0m sust_p50=11.0m ratio=0.1 n=53
+[11:47:17][W02] [public-ecr-aws-docker-] OK  p50=1649.0m p99=1899.0m sust_p50=1649.0m ratio=0.3 n=53
+[11:47:19][W01] [public-ecr-aws-docker-] OK  p50=3472.0m p99=4346.0m sust_p50=3472.0m ratio=0.1 n=53
+[11:47:35][W06] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m ratio=20.0 n=53
+[11:47:39][W05] [public-ecr-aws-docker-] OK  p50=20.0m p99=38.0m sust_p50=20.0m ratio=0.1 n=53
+[11:47:41][W07] [public-ecr-aws-docker-] OK  p50=0.0m p99=0.0m sust_p50=0.0m ratio=0.0 n=53
+[11:47:42][W03] [public-ecr-aws-docker-] OK  p50=3996.0m p99=3999.0m sust_p50=3997.0m ratio=0.0 n=53

@@ -1,0 +1,36 @@
+Phase 0 AWS Verification
+Generated: 2026-06-02T10:08:04.636092
+──────────────────────────────────────────────────
+
+PASS  project_dirs                                  ~/zero-telemetry-cpu/ OK
+PASS  kubectl_nodes                                 1/1 Ready
+PASS  kubectl_top                                   NAME              CPU(cores)   CPU(%)   MEMORY(bytes)  
+PASS  skopeo                                        nginx:alpine — 16 layer(s)
+PASS  docker_manifest                               0 compressed layers
+PASS  bench_wrk                                     wrk debian/4.1.0-4build3 [epoll] Copyright (C) 2012 Wil
+PASS  bench_redis-benchmark                         redis-benchmark 8.0.5
+PASS  bench_memtier_benchmark                       memtier_benchmark v=255.255.255 sha=7284bcff:0 bits=64 
+PASS  bench_sysbench                                sysbench 1.0.20
+PASS  bench_stress-ng                               stress-ng, version 0.20.01 (gcc 15.2.0, x86_64 Linux 7.
+PASS  bench_rabbitmq-perf-test                      not found: rabbitmq-perf-test
+PASS  bench_kafka-producer-perf-test                not found: kafka-producer-perf-test.sh
+PASS  bench_cassandra-stress                        not found: cassandra-stress
+PASS  bench_pgbench                                 Error: pg_wrapper: pgbench was not found in /usr/lib/po
+PASS  bench_mongosh                                 2.8.3
+PASS  k6                                            5s/2VU ok
+PASS  python_numpy                                  v2.4.6
+PASS  python_matplotlib                             v3.10.9
+PASS  python_pandas                                 v3.0.3
+PASS  python_yaml                                   v6.0.3
+PASS  python_requests                               v2.34.2
+PASS  python_tqdm                                   v4.67.3
+PASS  multiprocessing                               2-worker pool ok
+PASS  python_xgboost                                v3.2.0
+PASS  python_sklearn                                v1.8.0
+PASS  python_seaborn                                v0.13.2
+PASS  python_shap                                   v0.52.0
+PASS  codecarbon                                    tracked 3.25e-05 kg
+PASS  namespace_isolation                           create/delete zt-test-a zt-test-b
+
+──────────────────────────────────────────────────
+Total: 29/29 passed

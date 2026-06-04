@@ -1,0 +1,30 @@
+[11:40:21][W00] [public-ecr-aws-nginx-n] START  window=300s  proto=http
+[11:40:21][W01] [public-ecr-aws-docker-] START  window=300s  proto=redis
+[11:40:21][W02] [public-ecr-aws-docker-] START  window=3600s  proto=http
+[11:40:21][W03] [public-ecr-aws-docker-] START  window=300s  proto=http
+[11:40:21][W04] [public-ecr-aws-docker-] START  window=300s  proto=http
+[11:40:21][W05] [public-ecr-aws-docker-] START  window=300s  proto=http
+[11:40:21][W06] [public-ecr-aws-docker-] START  window=300s  proto=db_pgbench
+[11:40:21][W07] [public-ecr-aws-docker-] START  window=300s  proto=stress_ng
+[11:40:21][W09] [public-ecr-aws-elastic] START  window=3600s  proto=http_es
+[11:40:21][W08] [public-ecr-aws-docker-] START  window=300s  proto=http
+[11:40:42][W09] [public-ecr-aws-elastic] OCI  layers=10 size=705.9MB lang=java env_vars=2 ports=0
+[11:40:42][W09] [public-ecr-aws-elastic] FAIL deploy
+[11:40:42][W00] [public-ecr-aws-nginx-n] OCI  layers=8 size=24.8MB lang=c env_vars=7 ports=0
+[11:40:43][W00] [public-ecr-aws-nginx-n] FAIL deploy
+[11:40:54][W02] [public-ecr-aws-docker-] OCI  layers=5 size=70.6MB lang=java env_vars=6 ports=0
+[11:40:54][W02] [public-ecr-aws-docker-] FAIL deploy
+[11:41:06][W07] [public-ecr-aws-docker-] OCI  layers=1 size=3.3MB lang=c env_vars=1 ports=0
+[11:41:07][W04] [public-ecr-aws-docker-] OCI  layers=4 size=46.1MB lang=js env_vars=3 ports=0
+[11:41:07][W04] [public-ecr-aws-docker-] FAIL deploy
+[11:41:09][W01] [public-ecr-aws-docker-] OCI  layers=7 size=15.5MB lang=c env_vars=2 ports=0
+[11:41:09][W01] [public-ecr-aws-docker-] FAIL deploy
+[11:41:12][W06] [public-ecr-aws-docker-] OCI  layers=11 size=104.9MB lang=c env_vars=8 ports=0
+[11:41:12][W06] [public-ecr-aws-docker-] FAIL deploy
+[11:41:14][W08] [public-ecr-aws-docker-] OCI  layers=4 size=37.6MB lang=c env_vars=8 ports=0
+[11:41:14][W08] [public-ecr-aws-docker-] FAIL deploy
+[11:41:16][W03] [public-ecr-aws-docker-] OCI  layers=4 size=17.2MB lang=python env_vars=5 ports=0
+[11:41:16][W03] [public-ecr-aws-docker-] FAIL deploy
+[11:41:22][W05] [public-ecr-aws-docker-] OCI  layers=5 size=69.9MB lang=go env_vars=4 ports=0
+[11:41:22][W05] [public-ecr-aws-docker-] FAIL deploy
+[11:43:11][W07] [public-ecr-aws-docker-] FAIL deploy

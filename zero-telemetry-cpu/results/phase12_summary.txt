@@ -1,0 +1,33 @@
+Phase 1-2 AWS Parallel — Batch B Revised (20 images) Summary
+Generated : 2026-06-04T11:47:42.203367
+Duration  : 709.7s  (0.20h)
+Images    : 20 OK  /  0 failed
+
+Image                                  proto         req(m)  lim(m)  sust_p50  start_p99  ratio     n
+─────────────────────────────────────────────────────────────────────────────────────────────────────
+public.ecr.aws/docker/library/caddy:alpine http            12.0    22.0      12.0        9.0    0.8    53
+public.ecr.aws/docker/library/rabbitmq:3-management-alpine mq_rabbit        2.5     3.0       2.5      488.0   99.9     6
+public.ecr.aws/docker/library/mongo:7  db_mongo         4.0     5.0       4.0      254.0   63.5     7
+public.ecr.aws/docker/library/ubuntu:22.04 batch            0.0     0.0       0.0        1.0   10.0    53
+public.ecr.aws/docker/library/postgres:16-alpine db_pgbench       1.0     3.9       1.0       94.0   94.0     6
+public.ecr.aws/docker/library/debian:bookworm-slim batch            0.0     0.0       0.0        0.0    0.0    53
+public.ecr.aws/docker/library/ghost:alpine http           898.0  1225.0     891.0      546.0    0.6    53
+public.ecr.aws/docker/library/influxdb:2 http            12.0    22.0      11.0        1.0    0.1    53
+public.ecr.aws/docker/library/node:20-alpine http             4.0     6.0       4.0        2.0    0.5    53
+public.ecr.aws/docker/library/mysql:8  db_sysbench   1649.0  1899.0    1649.0      454.0    0.3    53
+public.ecr.aws/docker/library/nginx:1.27-alpine http             3.0     5.0       3.0        5.0    1.7    53
+public.ecr.aws/docker/library/mariadb:11 db_sysbench   3472.0  4346.0    3472.0      363.0    0.1    53
+public.ecr.aws/docker/library/openjdk:21-slim batch            0.0     0.0       0.0        0.0    0.0    53
+public.ecr.aws/docker/library/redmine:latest batch            0.0     0.0       0.0        2.0   20.0    53
+public.ecr.aws/docker/library/traefik:v3 http            18.0    33.0      18.0       18.0    1.0    53
+public.ecr.aws/docker/library/wordpress:php8.3-apache http            20.0    38.0      20.0        1.0    0.1    53
+public.ecr.aws/docker/library/rust:1-alpine batch            0.0     0.0       0.0        1.0   10.0    53
+public.ecr.aws/docker/library/golang:alpine batch            0.0     0.0       0.0        0.0    0.0    53
+public.ecr.aws/docker/library/node:18-alpine http             3.0     6.0       3.0        7.0    2.3    53
+public.ecr.aws/docker/library/alpine:3.19 stress_ng     3996.0  3999.0    3997.0        0.0    0.0    53
+
+Dataset : /home/ubuntu/zero-telemetry-cpu/data/dataset_b_revised.csv
+Traces  : /home/ubuntu/zero-telemetry-cpu/data/cpu_traces
+
+Merge both batches after collection:
+  python3 merge_datasets.py  # or pandas concat in phase2.py

@@ -1,0 +1,12 @@
+Phase 1-4 AWS Parallel — Batch D (Final Recovery) Summary
+Generated : 2026-06-04T08:25:54.637170
+Duration  : 307.7s  (0.09h)
+Images    : 2 OK  /  2 failed  [docker.io/prom/alertmanager:v0.26.0, docker.io/prom/prometheus:v2.48.0]
+
+Image                                         proto         sust_p50     p99  ratio     n
+─────────────────────────────────────────────────────────────────────────────────────────
+docker.io/library/cassandra:4                 stress_ng          0.0     0.0    0.0     0
+docker.io/library/golang:1.21-alpine          batch              0.0     0.0    0.0    53
+
+Dataset : /home/ubuntu/zero-telemetry-cpu/data/dataset_d.csv
+Traces  : /home/ubuntu/zero-telemetry-cpu/data/cpu_traces

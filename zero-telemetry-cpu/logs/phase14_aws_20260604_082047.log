@@ -1,0 +1,14 @@
+[08:20:47][W00] [golang-1-21-alpine] START  window=300s  proto=batch
+[08:20:47][W03] [cassandra-4] START  window=300s  proto=stress_ng
+[08:20:47][W02] [prom-alertmanager-v0-2] START  window=300s  proto=http
+[08:20:47][W01] [prom-prometheus-v2-48-] START  window=300s  proto=http
+[08:20:47][W00] [golang-1-21-alpine] OCI  layers=0 size=0.0MB
+[08:20:49][W02] [prom-alertmanager-v0-2] OCI  layers=0 size=0.0MB
+[08:20:50][W01] [prom-prometheus-v2-48-] OCI  layers=12 size=0.0MB
+[08:20:50][W03] [cassandra-4] OCI  layers=8 size=0.0MB
+[08:21:24][W00] [golang-1-21-alpine] STARTUP  n=2  p99=0m
+[08:21:26][W03] [cassandra-4] STARTUP  n=0  p99=0m
+[08:21:57][W03] [cassandra-4] OK  p50=0.0m p99=0.0m sust_p50=0.0m
+[08:22:25][W02] [prom-alertmanager-v0-2] FAIL deploy
+[08:22:25][W01] [prom-prometheus-v2-48-] FAIL deploy
+[08:25:54][W00] [golang-1-21-alpine] OK  p50=0.0m p99=0.0m sust_p50=0.0m

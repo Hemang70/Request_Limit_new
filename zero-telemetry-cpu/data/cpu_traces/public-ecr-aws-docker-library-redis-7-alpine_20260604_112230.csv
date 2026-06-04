@@ -1,0 +1,7 @@
+elapsed_s,phase,cpu_millicores
+0.2,rampup,5.0
+5.3,rampup,5.0
+10.4,rampup,5.0
+15.6,rampup,6.0
+20.7,rampup,6.0
+25.8,rampup,6.0
