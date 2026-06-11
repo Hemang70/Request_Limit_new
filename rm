@@ -1,0 +1,1149 @@
+#!/usr/bin/env python3
+"""
+PHASE 0 — MODEL 1 DATASET COLLECTOR
+=====================================
+Collects startup CPU + startup MEMORY labels for Model 1 training.
+
+STEADY-STATE NOT COLLECTED — by design.
+  Phase 2 uses the LIVE cgroup trace at runtime, not pre-collected data.
+  The EWMA and 3σ formulas operate on real-time post-drop samples from
+  the actual running pod. No offline steady-state measurement is needed.
+
+TIMING OPTIMISATION (no-steady-state):
+  Old: MAX_STARTUP(120) + DROP_CONFIRM(30) + buffer(10) = 160s worst-case
+  New: MAX_STARTUP(120) + DROP_CONFIRM(5)  + buffer(5)  = 130s worst-case
+  DROP_CONFIRM reduced 30→5s:
+    - We only need to confirm the drop is real (not a momentary dip).
+    - HOLD_S=20 already provides strong confirmation inside the detector.
+    - The 5s post-detection buffer catches any immediate recovery.
+    - Saves 25s per run × 450 runs = 11,250s = ~0.4h total.
+
+  Old estimate: 1.7h  →  New estimate: ~1.3h  (25% faster)
+
+CPU-drop detector (framework spec values — do not reduce)
+----------------------------------------------------------
+  DROP_FRAC=0.25, HOLD_S=20, MIN_STARTUP_S=10, MAX_STARTUP_S=120
+  HOLD_S=20 is required: JVM class loading is not monotonic.
+  A shorter hold window misses second spikes and mislabels them
+  as steady-state, corrupting the startup_cpu_p99_m training label.
+
+Requirements
+------------
+  sudo apt-get install -y skopeo docker.io
+  pip install --break-system-packages psutil
+
+Usage
+-----
+  sudo python3 phase0_model1_collector.py              # full run
+  python3 phase0_model1_collector.py --metadata-only  # skopeo test only
+  sudo python3 phase0_model1_collector.py --resume    # continue if interrupted
+  sudo python3 phase0_model1_collector.py --fast      # 1 run per image (debug)
+"""
+
+import argparse
+import csv
+import json
+import math
+import os
+import signal
+import subprocess
+import sys
+import time
+import threading
+from collections import deque  # noqa: kept for compatibility
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
+from pathlib import Path
+from threading import Semaphore, Lock
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+try:
+    import psutil
+    HAVE_PSUTIL = True
+except ImportError:
+    HAVE_PSUTIL = False
+
+# ── Output paths ───────────────────────────────────────────────────────────────
+OUT_DIR    = Path.home() / "phase0-data"
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+FINAL_CSV  = OUT_DIR / "training_dataset_model1.csv"
+TRACE_DIR  = OUT_DIR / "traces"
+TRACE_DIR.mkdir(exist_ok=True)
+FAILED_LOG = OUT_DIR / "failed_images.log"
+
+# ── Parallelism ────────────────────────────────────────────────────────────────
+HOST_CPU_COUNT   = os.cpu_count() or 16
+INITIAL_WORKERS  = min(8, HOST_CPU_COUNT // 2)
+MIN_WORKERS      = 4
+MAX_WORKERS      = 12
+TARGET_CPU_USAGE = 75   # keep host below this % during collection
+VCPU_PER_SLOT    = 2    # --cpus per container
+RUNS_PER_IMAGE   = 3
+
+# ── CPU-drop detector (framework spec values — do not reduce) ──────────────────
+# HOLD_S=20 is required: JVM startup is not monotonic (class loading spikes,
+# brief dip, then GC/JIT spikes again). A 15s hold window misses the second
+# spike and mislabels it as steady-state, corrupting the training label.
+DROP_FRAC     = 0.25   # startup ends when CPU < 25% of running peak
+HOLD_S        = 20     # must stay below for 20 consecutive seconds
+MIN_STARTUP_S = 10     # never declare startup done before 10s
+MAX_STARTUP_S = 120    # hard cap at 2 minutes
+
+# ── Timing ─────────────────────────────────────────────────────────────────────
+# DROP_CONFIRM_S reduced 30→5s because:
+#   - HOLD_S=20 inside the detector already confirmed the drop is sustained.
+#   - We do NOT collect steady-state samples (Phase 2 uses live trace).
+#   - 5s post-detection buffer is enough to confirm no immediate recovery.
+#   - Saves 25s × 450 runs ÷ 8 parallel = ~23 min total.
+DROP_CONFIRM_S = 5     # seconds to collect AFTER drop detected (was 30)
+TOTAL_RUN_S    = MAX_STARTUP_S + DROP_CONFIRM_S + 5   # 130s worst-case (was 160s)
+PULL_TIMEOUT   = 180
+POLL_INTERVAL  = 0.5   # cgroup read interval (0.5s → 2 samples/sec)
+
+# ── 118 EC2-VERIFIED images (32 bitnami removed — Bitnami left ECR Public) ───
+# All images confirmed passing: docker/library, MCR, elastic, hashicorp, corretto
+# Zero bitnami images. Strata counts reduced proportionally:
+#   S1 JVM heavy      : 15  (was 30)   S5 Native/Go      : 18  (was 20)
+#   S2 JVM base       : 22  (was 25)   S6 Alpine/minimal : 20  (unchanged)
+#   S3 .NET / C#      : 10  (was 15)   S7 DB / stateful  :  8  (was 10)
+#   S4 Interpreted    : 25  (was 30)   TOTAL             : 118
+ECR = "public.ecr.aws/docker/library"
+MCR = "mcr.microsoft.com"
+
+IMAGES: List[str] = [
+    # ── S1: JVM heavy (15) — CPU 800–3000m ───────────────────────────────────
+    "public.ecr.aws/elastic/elasticsearch:8.11.0",
+    "public.ecr.aws/elastic/elasticsearch:8.9.0",
+    "public.ecr.aws/elastic/elasticsearch:7.17.16",
+    "public.ecr.aws/elastic/logstash:8.11.0",
+    f"{ECR}/tomcat:10-jre21-temurin-jammy",
+    f"{ECR}/tomcat:10-jre17-temurin-jammy",
+    f"{ECR}/tomcat:9-jre17-temurin-jammy",
+    f"{ECR}/gradle:8-jdk21-alpine",
+    f"{ECR}/gradle:8-jdk17-alpine",
+    f"{ECR}/maven:3.9-eclipse-temurin-21-alpine",
+    f"{ECR}/maven:3.9-eclipse-temurin-17-alpine",
+    f"{ECR}/maven:3.8-eclipse-temurin-11-alpine",
+    f"{ECR}/rabbitmq:3-management-alpine",
+    f"{ECR}/neo4j:5-community",
+    f"{ECR}/sonarqube:10-community",
+
+    # ── S2: JVM base (22) — CPU 300–800m ─────────────────────────────────────
+    f"{ECR}/eclipse-temurin:21-jre-alpine",
+    f"{ECR}/eclipse-temurin:21-alpine",
+    f"{ECR}/eclipse-temurin:21-jdk-alpine",
+    f"{ECR}/eclipse-temurin:17-jre-alpine",
+    f"{ECR}/eclipse-temurin:17-alpine",
+    f"{ECR}/eclipse-temurin:11-jre-alpine",
+    f"{ECR}/eclipse-temurin:11-alpine",
+    f"{ECR}/eclipse-temurin:8-jre-alpine",
+    f"{ECR}/eclipse-temurin:8-alpine",
+    "public.ecr.aws/amazoncorretto/amazoncorretto:21",
+    f"{ECR}/amazoncorretto:17-alpine",
+    f"{ECR}/amazoncorretto:11-alpine",
+    f"{ECR}/amazoncorretto:8-alpine",
+    f"{ECR}/eclipse-temurin:21-jammy",
+    f"{ECR}/eclipse-temurin:17-jammy",
+    f"{ECR}/eclipse-temurin:11-jammy",
+    f"{ECR}/groovy:4",
+    f"{ECR}/groovy:3",
+    f"{ECR}/clojure:temurin-21-alpine",
+    f"{ECR}/clojure:temurin-17-alpine",
+    f"{ECR}/gradle:8-jdk11-alpine",
+    f"{ECR}/amazoncorretto:21-alpine",
+
+    # ── S3: .NET / C# (10) — CPU 400–1500m ───────────────────────────────────
+    f"{MCR}/dotnet/aspnet:8.0-alpine3.18",
+    f"{MCR}/dotnet/aspnet:7.0-alpine3.18",
+    f"{MCR}/dotnet/aspnet:6.0-alpine3.18",
+    f"{MCR}/dotnet/runtime:8.0-alpine3.18",
+    f"{MCR}/dotnet/runtime:7.0-alpine3.18",
+    f"{MCR}/dotnet/runtime:6.0-alpine3.18",
+    f"{MCR}/dotnet/sdk:8.0-alpine3.18",
+    f"{MCR}/dotnet/sdk:7.0-alpine3.18",
+    f"{ECR}/mono:6-slim",
+    f"{ECR}/mono:6",
+
+    # ── S4: Interpreted (25) — CPU 100–400m ──────────────────────────────────
+    f"{ECR}/python:3.12",
+    f"{ECR}/python:3.12-slim",
+    f"{ECR}/python:3.12-alpine",
+    f"{ECR}/python:3.11",
+    f"{ECR}/python:3.11-slim",
+    f"{ECR}/python:3.11-alpine",
+    f"{ECR}/python:3.10-slim",
+    f"{ECR}/python:3.9-slim",
+    f"{ECR}/node:20-alpine",
+    f"{ECR}/node:20-slim",
+    f"{ECR}/node:20",
+    f"{ECR}/node:18-alpine",
+    f"{ECR}/node:18-slim",
+    f"{ECR}/node:16-alpine",
+    f"{ECR}/ruby:3.3-alpine",
+    f"{ECR}/ruby:3.2-alpine",
+    f"{ECR}/ruby:3.1-alpine",
+    f"{ECR}/php:8.3-fpm-alpine",
+    f"{ECR}/php:8.2-fpm-alpine",
+    f"{ECR}/php:8.1-fpm-alpine",
+    f"{ECR}/perl:5-slim",
+    f"{ECR}/swift:5.9-slim",
+    f"{ECR}/julia:1.10-alpine",
+    f"{ECR}/r-base:4.0.3",
+    f"{ECR}/php:8.3-cli-alpine",
+
+    # ── S5: Native / Go (18) — CPU 10–100m ───────────────────────────────────
+    f"{ECR}/golang:1.22-alpine",
+    f"{ECR}/golang:1.22-bookworm",
+    f"{ECR}/golang:1.21-alpine",
+    f"{ECR}/golang:1.20-alpine",
+    f"{ECR}/traefik:v3.0",
+    f"{ECR}/traefik:v2.11",
+    f"{ECR}/caddy:2-alpine",
+    f"{ECR}/consul:1.6",
+    "public.ecr.aws/hashicorp/consul:1.17",
+    "public.ecr.aws/hashicorp/vault:1.15",
+    f"{ECR}/rust:1.76-alpine",
+    f"{ECR}/rust:1.75-slim",
+    f"{ECR}/rust:1.76",
+    f"{ECR}/gcc:13-bookworm",
+    f"{ECR}/gcc:12-bookworm",
+    f"{ECR}/gcc:11-bookworm",
+    f"{ECR}/swift:5.9",
+    f"{ECR}/haproxy:2.9-alpine",
+
+    # ── S6: Alpine / minimal (20) — CPU 5–30m ────────────────────────────────
+    f"{ECR}/nginx:1.25-alpine",
+    f"{ECR}/nginx:1.24-alpine",
+    f"{ECR}/nginx:alpine",
+    f"{ECR}/nginx:1.25-bookworm",
+    f"{ECR}/httpd:2.4-alpine",
+    f"{ECR}/httpd:alpine",
+    f"{ECR}/redis:7-alpine",
+    f"{ECR}/redis:7.2-alpine",
+    f"{ECR}/redis:6-alpine",
+    f"{ECR}/memcached:alpine",
+    f"{ECR}/memcached:1.6-alpine",
+    f"{ECR}/varnish:7-alpine",
+    f"{ECR}/haproxy:2.8-alpine",
+    f"{ECR}/nginx:stable-alpine",
+    f"{ECR}/busybox:1.36",
+    f"{ECR}/alpine:3.19",
+    f"{ECR}/alpine:3.18",
+    f"{ECR}/alpine:3.17",
+    f"{ECR}/debian:bookworm-slim",
+    f"{ECR}/ubuntu:22.04",
+
+    # ── S7: DB / stateful (8) — CPU 200–600m ─────────────────────────────────
+    f"{ECR}/postgres:16-alpine",
+    f"{ECR}/postgres:15-alpine",
+    f"{ECR}/postgres:14-alpine",
+    f"{ECR}/mysql:8.0",
+    f"{ECR}/mysql:8.2",
+    f"{ECR}/mariadb:11-jammy",
+    f"{ECR}/mongo:7",
+    f"{ECR}/mongo:6",
+]
+
+assert len(IMAGES) == 118, f"Expected 118, got {len(IMAGES)}"
+assert len(set(IMAGES)) == 118, \
+    f"Duplicates: {[x for x in IMAGES if IMAGES.count(x) > 1]}"
+
+
+# ── CSV schema ─────────────────────────────────────────────────────────────────
+FEATURE_COLS = [
+    "image", "image_tag", "image_repo", "image_digest", "collected_at",
+    # Layer stats
+    "layer_count", "total_size_mb", "avg_layer_size_mb",
+    "layer_size_std_mb", "layer_size_max_mb", "layer_size_cv", "layer_size_skew",
+    "compressed_total_mb", "compressed_ratio",
+    # Language
+    "lang_java", "lang_dotnet", "lang_python", "lang_go", "lang_js", "lang_c",
+    "lang_source",
+    # ENV
+    "env_var_count", "env_has_java", "env_has_dotnet", "env_path_segments",
+    # Entrypoint
+    "has_entrypoint", "has_entrypoint_script", "has_shell_cmd",
+    # Ports
+    "exposed_port_count", "exposes_jmx",
+]
+
+TARGET_COLS = [
+    # CPU targets (Model 1 primary outputs)
+    "startup_cpu_p99_m",    # PRIMARY: Phase 1 sets request=limit=this
+    "startup_cpu_p95_m",
+    "startup_cpu_max_m",
+    "startup_cpu_mean_m",
+    "startup_duration_s",
+    # Memory targets (NEW — for memory right-sizing)
+    "startup_mem_peak_mb",  # peak RSS during startup (for memory limit)
+    "startup_mem_mean_mb",  # mean RSS during startup (for memory request)
+    "startup_mem_at_end_mb",# RSS when startup ended (steady-state baseline)
+    # Run quality
+    "runs_ok",
+]
+
+CSV_COLUMNS = FEATURE_COLS + TARGET_COLS
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CACHES (from Phase0_dataCollection)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class DockerPullCache:
+    """Avoid redundant pulls across the 3 runs of the same image."""
+    def __init__(self, ttl: int = 600):
+        self._cache: Dict[str, float] = {}
+        self._lock = Lock()
+        self._ttl = ttl
+
+    def is_pulled(self, image: str) -> bool:
+        with self._lock:
+            ts = self._cache.get(image, 0)
+            return (time.time() - ts) < self._ttl
+
+    def mark(self, image: str) -> None:
+        with self._lock:
+            self._cache[image] = time.time()
+
+
+class CgroupPathCache:
+    """Cache cgroup filesystem paths per container to avoid repeated stat calls."""
+    def __init__(self):
+        self._cpu:    Dict[str, Optional[str]] = {}
+        self._mem:    Dict[str, Optional[str]] = {}
+        self._lock    = Lock()
+
+    def _find(self, container_id: str, metric: str) -> Optional[str]:
+        """Find cgroup path for a given metric file."""
+        if metric == "cpu":
+            candidates = [
+                f"/sys/fs/cgroup/system.slice/docker-{container_id}.scope/cpu.stat",
+                f"/sys/fs/cgroup/docker/{container_id}/cpu.stat",
+                f"/sys/fs/cgroup/cpu/docker/{container_id}/cpuacct.usage",
+            ]
+        else:  # memory
+            candidates = [
+                # cgroup v2 (Amazon Linux 2023, Ubuntu 22.04)
+                f"/sys/fs/cgroup/system.slice/docker-{container_id}.scope/memory.current",
+                f"/sys/fs/cgroup/docker/{container_id}/memory.current",
+                # cgroup v1 fallback
+                f"/sys/fs/cgroup/memory/docker/{container_id}/memory.usage_in_bytes",
+            ]
+        for p in candidates:
+            if os.path.exists(p):
+                return p
+        return None
+
+    def get_cpu_path(self, cid: str) -> Optional[str]:
+        with self._lock:
+            if cid not in self._cpu:
+                self._cpu[cid] = self._find(cid, "cpu")
+            return self._cpu[cid]
+
+    def get_mem_path(self, cid: str) -> Optional[str]:
+        with self._lock:
+            if cid not in self._mem:
+                self._mem[cid] = self._find(cid, "memory")
+            return self._mem[cid]
+
+
+pull_cache  = DockerPullCache()
+cgroup_path = CgroupPathCache()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SUBPROCESS HELPER
+# ══════════════════════════════════════════════════════════════════════════════
+
+def run(cmd: List[str], timeout: int = 45, retries: int = 2) -> Tuple[int, str, str]:
+    last_err = ""
+    for attempt in range(retries):
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            if r.returncode == 0:
+                return 0, r.stdout.strip(), r.stderr.strip()
+            last_err = r.stderr.strip()
+            if any(x in last_err.lower() for x in ("unauthorized", "manifest unknown", "not found")):
+                return r.returncode, r.stdout.strip(), last_err
+        except subprocess.TimeoutExpired:
+            last_err = f"timeout {timeout}s"
+        except Exception as e:
+            last_err = str(e)
+        if attempt < retries - 1:
+            time.sleep(2 ** attempt)
+    return 1, "", last_err
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADAPTIVE WORKER POOL (from Phase0_dataCollection)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AdaptiveWorkerPool:
+    """Reduce workers if host CPU > 85%, increase if < 55%."""
+    def __init__(self, initial: int = INITIAL_WORKERS):
+        self._n    = initial
+        self._lock = Lock()
+        self._last = time.time()
+
+    def current(self) -> int:
+        if not HAVE_PSUTIL:
+            return self._n
+        with self._lock:
+            if time.time() - self._last < 30:
+                return self._n
+            cpu = psutil.cpu_percent(interval=0.1)
+            if cpu > TARGET_CPU_USAGE + 10 and self._n > MIN_WORKERS:
+                self._n -= 1
+                print(f"  [adaptive] host CPU {cpu:.0f}% → workers ↓ {self._n}")
+            elif cpu < TARGET_CPU_USAGE - 20 and self._n < MAX_WORKERS:
+                self._n += 1
+                print(f"  [adaptive] host CPU {cpu:.0f}% → workers ↑ {self._n}")
+            self._last = time.time()
+            return self._n
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STATIC METADATA (skopeo — no docker pull)
+# ══════════════════════════════════════════════════════════════════════════════
+
+_meta_cache: Dict[str, Optional[Dict]] = {}
+_meta_lock  = Lock()
+
+
+def get_metadata(image: str) -> Optional[Dict]:
+    with _meta_lock:
+        if image in _meta_cache:
+            return _meta_cache[image]
+    rc, out, _ = run(
+        ["skopeo", "inspect", f"docker://{image}",
+         "--no-creds", "--override-os", "linux", "--override-arch", "amd64"],
+        timeout=25
+    )
+    result = json.loads(out) if rc == 0 and out else None
+    with _meta_lock:
+        _meta_cache[image] = result
+    return result
+
+
+def get_compressed_mb(image: str) -> float:
+    rc, out, _ = run(
+        ["skopeo", "inspect", f"docker://{image}", "--raw",
+         "--no-creds", "--override-os", "linux", "--override-arch", "amd64"],
+        timeout=25
+    )
+    if rc == 0 and out:
+        try:
+            layers = json.loads(out).get("layers", [])
+            if layers:
+                return round(sum(l.get("size", 0) for l in layers) / 1_048_576, 2)
+        except Exception:
+            pass
+    return 0.0
+
+
+def detect_language(image: str, env_vars: List[str]) -> Tuple[Dict[str, int], str]:
+    """
+    Two-pass language detection.
+    Pass 1: ENV variables (most reliable — set by the image maintainer).
+    Pass 2: image name / registry path (fallback).
+    Priority: java > dotnet > python > go > js/interpreted > c/native
+    """
+    img_l   = image.lower()
+    env_str = " ".join(env_vars).lower() if env_vars else ""
+    lang    = dict(lang_java=0, lang_dotnet=0, lang_python=0,
+                   lang_go=0, lang_js=0, lang_c=0)
+    source  = "name"
+
+    # Pass 1 — ENV
+    if any(x in env_str for x in ("java_home", "jvm_opts", "classpath", "java_version")):
+        lang["lang_java"] = 1; source = "env"
+    elif any(x in env_str for x in ("dotnet_root", "dotnet_version", "aspnetcore")):
+        lang["lang_dotnet"] = 1; source = "env"
+    elif any(x in env_str for x in ("pythonpath", "conda_prefix", "pyenv")):
+        lang["lang_python"] = 1; source = "env"
+    elif any(x in env_str for x in ("gopath", "goroot", "go111module")):
+        lang["lang_go"] = 1; source = "env"
+    elif any(x in env_str for x in ("node_path", "npm_config")):
+        lang["lang_js"] = 1; source = "env"
+
+    # Pass 2 — name (if ENV gave no signal)
+    if not any(lang.values()):
+        if any(x in img_l for x in (
+            "temurin", "openjdk", "tomcat", "gradle", "maven", "keycloak",
+            "elastic", "logstash", "jre", "jdk", "kafka", "spark", "flink",
+            "zookeeper", "wildfly", "cassandra", "jenkins", "solr", "rabbitmq",
+            "corretto", "groovy", "clojure", "neo4j", "sonarqube", "bitnami/java",
+        )):
+            lang["lang_java"] = 1
+        elif any(x in img_l for x in (
+            "mcr.microsoft.com/dotnet", "dotnet-sdk", "aspnet-core", "mono",
+        )):
+            lang["lang_dotnet"] = 1
+        elif any(x in img_l for x in ("python", "jupyter", "conda")):
+            lang["lang_python"] = 1
+        elif any(x in img_l for x in (
+            "golang", "traefik", "caddy", "consul", "vault", "hashicorp", "bitnami/golang",
+        )):
+            lang["lang_go"] = 1
+        elif any(x in img_l for x in (
+            "node", "deno",
+            "ruby", "php", "perl", "julia", "r-base",
+        )) or any(f"/{x}:" in img_l or f"/{x}-" in img_l
+                  for x in ("bun",)):   # 'bun' is a substring of 'ubuntu' — use path match
+            lang["lang_js"] = 1
+        elif any(x in img_l for x in (
+            "nginx", "httpd", "redis", "memcached", "haproxy", "varnish",
+            "busybox", "gcc", "rust", "swift",
+            "alpine", "debian", "ubuntu",
+            "mysql", "mariadb", "mongo", "postgres", "influxdb", "clickhouse",
+        )):
+            lang["lang_c"] = 1
+
+    return lang, source
+
+
+def extract_static_features(image: str) -> Optional[Dict[str, Any]]:
+    """Extract all static OCI features via registry API (no docker pull)."""
+    parts = image.split(":", 1)
+    row: Dict[str, Any] = {
+        "image":        image,
+        "image_tag":    parts[1] if len(parts) > 1 else "latest",
+        "image_repo":   parts[0].split("/")[0] if "/" in parts[0] else "library",
+        "image_digest": "",
+        "collected_at": datetime.now(timezone.utc).isoformat(),
+        "layer_count": 0, "total_size_mb": 0.0, "avg_layer_size_mb": 0.0,
+        "layer_size_std_mb": 0.0, "layer_size_max_mb": 0.0,
+        "layer_size_cv": 0.0, "layer_size_skew": 0.0,
+        "compressed_total_mb": 0.0, "compressed_ratio": 0.0,
+        "lang_java": 0, "lang_dotnet": 0, "lang_python": 0,
+        "lang_go": 0, "lang_js": 0, "lang_c": 0, "lang_source": "name",
+        "env_var_count": 0, "env_has_java": 0, "env_has_dotnet": 0,
+        "env_path_segments": 0,
+        "has_entrypoint": 0, "has_entrypoint_script": 0, "has_shell_cmd": 0,
+        "exposed_port_count": 0, "exposes_jmx": 0,
+    }
+
+    info = get_metadata(image)
+    if not info:
+        return None
+
+    row["image_digest"] = info.get("Digest", "")
+
+    # Layer stats
+    layers_data = info.get("LayersData") or []
+    sizes = [float(ld["Size"]) for ld in layers_data if ld.get("Size", 0) > 0]
+    if not sizes:
+        return None
+
+    n = len(sizes)
+    total = sum(sizes)
+    mean  = total / n
+    mb    = 1_048_576
+    var   = sum((s - mean) ** 2 for s in sizes) / n
+    std   = math.sqrt(var)
+    sv    = sorted(sizes)
+    median = sv[n // 2] if n % 2 else (sv[n // 2 - 1] + sv[n // 2]) / 2
+
+    row.update({
+        "layer_count":       n,
+        "total_size_mb":     round(total / mb, 2),
+        "avg_layer_size_mb": round(mean / mb, 2),
+        "layer_size_std_mb": round(std / mb, 4),
+        "layer_size_max_mb": round(max(sizes) / mb, 2),
+        "layer_size_cv":     round(std / mean, 4) if mean > 0 else 0.0,
+        "layer_size_skew":   round(3 * (mean - median) / std, 4) if std > 0 else 0.0,
+    })
+
+    comp = get_compressed_mb(image)
+    if comp > 0 and row["total_size_mb"] > 0:
+        row["compressed_total_mb"] = comp
+        row["compressed_ratio"]    = round(comp / row["total_size_mb"], 4)
+    else:
+        # Fallback estimate from language compression ratios
+        ratio_map = {"lang_java": 0.44, "lang_dotnet": 0.43, "lang_python": 0.41,
+                     "lang_js":   0.40, "lang_go":     0.35, "lang_c":      0.34}
+        for k, r_val in ratio_map.items():
+            if row.get(k):
+                row["compressed_ratio"]    = r_val
+                row["compressed_total_mb"] = round(row["total_size_mb"] * r_val, 2)
+                break
+
+    env_vars = info.get("Env") or []
+    env_str  = " ".join(env_vars).lower()
+    row["env_var_count"]  = len(env_vars)
+    row["env_has_java"]   = int(any(x in env_str for x in ("java_home", "jvm_opts", "classpath")))
+    row["env_has_dotnet"] = int(any(x in env_str for x in ("dotnet_root", "dotnet_version", "aspnetcore")))
+    path_val = next((v.split("=", 1)[1] for v in env_vars if v.upper().startswith("PATH=")), "")
+    row["env_path_segments"] = len(path_val.split(":")) if path_val else 0
+
+    lang, source = detect_language(image, env_vars)
+    row.update(lang)
+    row["lang_source"] = source
+
+    ep  = info.get("Entrypoint") or []
+    cmd = info.get("Cmd") or []
+    row["has_entrypoint"]        = int(bool(ep))
+    row["has_entrypoint_script"] = int(any(x.endswith(".sh") or "java" in x.lower()
+                                           for x in ep + cmd))
+    row["has_shell_cmd"]         = int(bool(cmd) and cmd[0] in ("/bin/sh", "/bin/bash", "sh", "bash"))
+
+    ports = {int(str(p).split("/")[0]) for p in (info.get("ExposedPorts") or {})
+             if str(p).split("/")[0].isdigit()}
+    row["exposed_port_count"] = len(ports)
+    row["exposes_jmx"]        = int(bool(ports & {9999, 1099, 7199, 9010}))
+
+    return row
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CGROUP READERS — CPU + MEMORY
+# ══════════════════════════════════════════════════════════════════════════════
+
+def read_cpu_usec(container_id: str) -> Optional[int]:
+    """Return cumulative CPU microseconds from cgroup v2/v1."""
+    path = cgroup_path.get_cpu_path(container_id)
+    if not path:
+        return None
+    try:
+        with open(path) as f:
+            if path.endswith("cpu.stat"):            # cgroup v2
+                for line in f:
+                    if line.startswith("usage_usec"):
+                        return int(line.split()[1])
+            else:                                    # cgroup v1 (nanoseconds)
+                return int(f.read().strip()) // 1000
+    except (FileNotFoundError, PermissionError, ValueError, IndexError):
+        return None
+    return None
+
+
+def read_mem_bytes(container_id: str) -> Optional[int]:
+    """
+    Return current RSS memory in bytes.
+    cgroup v2: memory.current (includes page cache — RSS + cache)
+    cgroup v1: memory.usage_in_bytes (same semantics)
+
+    For training purposes this is the correct value to use as the
+    basis for a Kubernetes memory limit — it represents what the
+    kernel will OOM-kill at, not just the heap.
+    """
+    path = cgroup_path.get_mem_path(container_id)
+    if not path:
+        return None
+    try:
+        with open(path) as f:
+            val = int(f.read().strip())
+            return val if val > 0 else None
+    except (FileNotFoundError, PermissionError, ValueError):
+        return None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TRACE COLLECTION WITH EARLY-STOP (CPU + MEMORY)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def collect_traces(
+    container_id: str,
+    max_s: int = TOTAL_RUN_S,
+) -> Tuple[List[float], List[float], bool]:
+    """
+    Poll cgroup every POLL_INTERVAL seconds, collecting CPU millicores and
+    memory MB simultaneously.
+
+    Returns:
+        cpu_trace  : per-interval CPU millicores (delta from cumulative counter)
+        mem_trace  : per-interval memory in MB (instantaneous)
+        early_stop : True if CPU-drop detector fired before max_s
+    """
+    cpu_trace: List[float] = []
+    mem_trace: List[float] = []
+
+    prev_cpu_usec: Optional[int] = None
+
+    # Drop detector state
+    running_peak    = 0.0
+    candidate_start = -1
+    drop_confirmed_at: Optional[int] = None
+
+    samples_per_s = round(1.0 / POLL_INTERVAL)  # e.g. 2 at 0.5s intervals
+    max_samples   = max_s * samples_per_s
+
+    for tick in range(max_samples):
+        t0 = time.monotonic()
+        s  = tick // samples_per_s       # current second index
+
+        # ── CPU ───────────────────────────────────────────────────────────────
+        curr_usec = read_cpu_usec(container_id)
+        if curr_usec is not None and prev_cpu_usec is not None:
+            delta_usec  = max(0, curr_usec - prev_cpu_usec)
+            # Convert: delta usec over POLL_INTERVAL seconds → millicores
+            # 1 vCPU = 1_000_000 usec/s; over POLL_INTERVAL s = POLL_INTERVAL*1e6
+            millicores = delta_usec / (POLL_INTERVAL * 1_000)
+            cpu_trace.append(round(millicores, 1))
+        prev_cpu_usec = curr_usec
+
+        # ── Memory ────────────────────────────────────────────────────────────
+        mem_bytes = read_mem_bytes(container_id)
+        if mem_bytes is not None:
+            mem_trace.append(round(mem_bytes / 1_048_576, 1))  # bytes → MB
+
+        # ── CPU-drop detector (operates on 1-second aggregates) ───────────────
+        if cpu_trace and tick % samples_per_s == (samples_per_s - 1):
+            # Aggregate the last samples_per_s readings into a 1-second value
+            window = cpu_trace[-samples_per_s:]
+            cpu_1s = sum(window) / len(window)
+
+            running_peak = max(running_peak, cpu_1s)
+
+            if s >= MIN_STARTUP_S and drop_confirmed_at is None:
+                threshold = DROP_FRAC * running_peak
+                if cpu_1s < threshold:
+                    if candidate_start == -1:
+                        candidate_start = s
+                    elif s - candidate_start >= HOLD_S:
+                        drop_confirmed_at = candidate_start
+                else:
+                    candidate_start = -1
+
+            if drop_confirmed_at is not None:
+                if s - drop_confirmed_at >= DROP_CONFIRM_S:
+                    return cpu_trace, mem_trace, True
+
+        elapsed = time.monotonic() - t0
+        time.sleep(max(0, POLL_INTERVAL - elapsed))
+
+    return cpu_trace, mem_trace, False
+
+
+# ── Startup/steady boundary (on 1-second CPU trace) ──────────────────────────
+
+def detect_startup_end(trace_1s: List[float]) -> int:
+    """Apply CPU-drop detector to a 1-second resolution trace."""
+    running_peak    = 0.0
+    candidate_start = -1
+    for s, cpu in enumerate(trace_1s):
+        running_peak = max(running_peak, cpu)
+        if s < MIN_STARTUP_S:
+            continue
+        if s >= MAX_STARTUP_S:
+            return MAX_STARTUP_S
+        threshold = DROP_FRAC * running_peak
+        if cpu < threshold:
+            if candidate_start == -1:
+                candidate_start = s
+            elif s - candidate_start >= HOLD_S:
+                return candidate_start
+        else:
+            candidate_start = -1
+    return min(MAX_STARTUP_S, len(trace_1s))
+
+
+def pct(values: List[float], p: float) -> float:
+    if not values:
+        return 0.0
+    sv  = sorted(values)
+    idx = p / 100 * (len(sv) - 1)
+    lo, hi = int(idx), min(int(idx) + 1, len(sv) - 1)
+    return sv[lo] + (idx - lo) * (sv[hi] - sv[lo])
+
+
+def summarise(cpu_raw: List[float], mem_raw: List[float]) -> Optional[Dict]:
+    """
+    Convert sub-second traces to 1-second resolution, apply CPU-drop detector,
+    then compute startup statistics for both CPU and memory.
+    """
+    spx = round(1.0 / POLL_INTERVAL)  # samples per second
+
+    # Downsample to 1-second mean CPU trace
+    cpu_1s = [
+        sum(cpu_raw[i:i + spx]) / len(cpu_raw[i:i + spx])
+        for i in range(0, len(cpu_raw), spx)
+        if cpu_raw[i:i + spx]
+    ]
+
+    # Downsample memory to 1-second max (we want the peak within each second)
+    mem_1s = [
+        max(mem_raw[i:i + spx])
+        for i in range(0, len(mem_raw), spx)
+        if mem_raw[i:i + spx]
+    ]
+
+    if len(cpu_1s) < MIN_STARTUP_S + 5:
+        return None
+
+    end = detect_startup_end(cpu_1s)
+
+    startup_cpu = cpu_1s[:end]
+    startup_mem = mem_1s[:end] if mem_1s else []
+
+    # Quality gate: container must have shown real activity
+    if not startup_cpu or max(startup_cpu) < 10.0:
+        return None
+
+    result = {
+        # CPU
+        "startup_cpu_p99_m":   round(pct(startup_cpu, 99), 1),
+        "startup_cpu_p95_m":   round(pct(startup_cpu, 95), 1),
+        "startup_cpu_max_m":   round(max(startup_cpu), 1),
+        "startup_cpu_mean_m":  round(sum(startup_cpu) / len(startup_cpu), 1),
+        "startup_duration_s":  float(end),
+        # Memory
+        "startup_mem_peak_mb":    round(max(startup_mem), 1)   if startup_mem else "",
+        "startup_mem_mean_mb":    round(sum(startup_mem) / len(startup_mem), 1) if startup_mem else "",
+        "startup_mem_at_end_mb":  round(startup_mem[-1], 1)    if startup_mem else "",
+    }
+    return result
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CONTAINER BENCHMARK
+# ══════════════════════════════════════════════════════════════════════════════
+
+def benchmark_image(image: str, run_idx: int) -> Optional[Dict]:
+    """Pull (cached) and run one container. Collect CPU + memory traces."""
+
+    # Pull (cached across the 3 runs of the same image)
+    if not pull_cache.is_pulled(image):
+        rc, _, err = run(["docker", "pull", image], timeout=PULL_TIMEOUT, retries=2)
+        if rc != 0:
+            print(f"    Pull failed {image[:55]}: {err[:60]}")
+            return None
+        pull_cache.mark(image)
+
+    name = f"p0-{abs(hash(image + str(run_idx))) % 100000:05d}"
+
+    # Start container (try /bin/sh, fallback to sh)
+    container_id = None
+    for shell in ["/bin/sh", "sh"]:
+        rc, cid, err = run([
+            "docker", "run", "-d", "--rm",
+            f"--cpus={VCPU_PER_SLOT}",
+            "--memory=4g",
+            "--name", name,
+            image, shell, "-c", f"sleep {TOTAL_RUN_S}"
+        ], timeout=20)
+        if rc == 0 and cid:
+            container_id = cid.strip()
+            break
+
+    if not container_id:
+        print(f"    Start failed {image[:55]}")
+        return None
+
+    t0 = time.monotonic()
+    try:
+        cpu_raw, mem_raw, early = collect_traces(container_id)
+
+        # Persist raw traces for offline debugging
+        trace_path = TRACE_DIR / f"{abs(hash(image)):016x}_run{run_idx}.json"
+        trace_path.write_text(json.dumps({
+            "image": image, "cpu_trace": cpu_raw, "mem_trace_mb": mem_raw,
+            "elapsed_s": round(time.monotonic() - t0, 1), "early_stop": early,
+        }))
+
+        return summarise(cpu_raw, mem_raw)
+
+    finally:
+        subprocess.run(["docker", "rm", "-f", container_id],
+                       capture_output=True, timeout=8)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# WORKER (processes one image)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def process_image(
+    image: str,
+    static: Dict,
+    runs: int,
+    sem: Semaphore,
+    lock: Lock,
+    results: List[Dict],
+    counter: List[int],
+    total: int,
+    discard_first: bool = False,
+) -> None:
+    with sem:
+        row = dict(static)
+        summaries: List[Dict] = []
+        total_elapsed = 0.0
+
+        for run_idx in range(1, runs + 1):
+            t0 = time.monotonic()
+            s  = benchmark_image(image, run_idx)
+            elapsed = time.monotonic() - t0
+            total_elapsed += elapsed
+
+            if discard_first and run_idx == 1:
+                # Run 1 warms the page cache and overlay FS — result discarded.
+                # This eliminates the cold-start CPU inflation that biases
+                # startup_cpu_p99_m upward by 20–40% for S1/S2 JVM images.
+                print(f"    [discard-first] run 1 discarded ({elapsed:.0f}s) — "
+                      f"page cache warmed for {image.split('/')[-1][:30]}")
+                continue
+
+            if s:
+                summaries.append(s)
+
+        if summaries:
+            # Average all numeric targets across successful runs
+            for col in TARGET_COLS:
+                if col == "runs_ok":
+                    continue
+                vals = [s[col] for s in summaries if s.get(col) not in ("", None)]
+                row[col] = round(sum(vals) / len(vals), 1) if vals else ""
+            row["runs_ok"] = len(summaries)
+            avg_s = round(total_elapsed / len(summaries), 0)
+        else:
+            for col in TARGET_COLS:
+                row[col] = ""
+            row["runs_ok"] = 0
+            avg_s = 0
+
+        with lock:
+            results.append(row)
+            counter[0] += 1
+            pct_done = counter[0] / total * 100
+            p99  = row.get("startup_cpu_p99_m", "?")
+            mem  = row.get("startup_mem_peak_mb", "?")
+            dur  = row.get("startup_duration_s", "?")
+            ok   = row.get("runs_ok", 0)
+            print(f"  [{counter[0]:3d}/{total}] ({pct_done:4.0f}%)  "
+                  f"cpu_p99={p99}m  mem_peak={mem}MB  dur={dur}s  "
+                  f"avg={avg_s}s  runs={ok}  {image[:40]}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MAIN
+# ══════════════════════════════════════════════════════════════════════════════
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Phase 0 collector — CPU + memory startup labels, m5.4xlarge"
+    )
+    parser.add_argument("--metadata-only", action="store_true",
+                        help="Collect static metadata only (no containers)")
+    parser.add_argument("--resume",  action="store_true",
+                        help="Skip images already in output CSV")
+    parser.add_argument("--fast",    action="store_true",
+                        help="1 run per image (debug/smoke-test mode)")
+    parser.add_argument("--discard-first", action="store_true",
+                        help="Discard run 1 (page-cache warm-up), label from run 2+. "
+                             "Use with --runs 2 for warm measurements in ~1.0h. "
+                             "Eliminates cold-start bias for S1/S2 JVM images.")
+    parser.add_argument("--workers", type=int, default=INITIAL_WORKERS,
+                        help=f"Initial parallel workers (default {INITIAL_WORKERS})")
+    parser.add_argument("--runs",    type=int, default=RUNS_PER_IMAGE,
+                        help=f"Runs per image (default {RUNS_PER_IMAGE})")
+    parser.add_argument("--output",  type=Path, default=FINAL_CSV)
+    args = parser.parse_args()
+
+    if args.fast:
+        args.runs = 1
+
+    # --discard-first requires at least 2 runs (run 1 discarded, run 2+ labelled)
+    if args.discard_first:
+        if args.runs < 2:
+            print("ERROR: --discard-first requires --runs 2 or more.")
+            print("       Run 1 is discarded (page-cache warm-up).")
+            print("       Use: --runs 2 --discard-first")
+            sys.exit(1)
+        if args.fast:
+            print("ERROR: --fast and --discard-first are mutually exclusive.")
+            sys.exit(1)
+
+    # Check tools
+    for tool in (["skopeo", "--version"], ["docker", "--version"]):
+        rc, _, _ = run(tool, timeout=5, retries=1)
+        if rc != 0 and not args.metadata_only:
+            print(f"ERROR: {tool[0]} not found.  sudo apt-get install {tool[0]}")
+            sys.exit(1)
+
+    if not HAVE_PSUTIL:
+        print("NOTE: psutil not installed — adaptive workers disabled.")
+        print("      pip install --break-system-packages psutil")
+
+    # Resume: load already-done image set
+    done: Set[str] = set()
+    if args.resume and args.output.exists():
+        with open(args.output) as f:
+            done = {r["image"] for r in csv.DictReader(f)}
+        print(f"Resuming: {len(done)} images already collected")
+
+    todo = [img for img in IMAGES if img not in done]
+
+    if args.metadata_only:
+        mode_str = "METADATA ONLY"
+    elif args.discard_first:
+        mode_str = f"DISCARD-FIRST (run 1 warm-up, label from runs 2–{args.runs})"
+    else:
+        mode_str = "FULL (startup CPU + memory)"
+
+    print(f"\n{'═'*70}")
+    print(f"PHASE 0 MODEL 1 COLLECTOR — CPU + MEMORY (NO STEADY-STATE)")
+    print(f"{'═'*70}")
+    print(f"  Images      : {len(IMAGES)} total / {len(todo)} to collect")
+    print(f"  Workers     : {args.workers} (adaptive, {MIN_WORKERS}–{MAX_WORKERS})")
+    print(f"  Runs each   : {args.runs}"
+          + (f"  (run 1 discarded)" if args.discard_first else ""))
+    print(f"  Mode        : {mode_str}")
+    print(f"  Poll        : {POLL_INTERVAL}s  →  {round(1/POLL_INTERVAL)} samples/s")
+    print(f"  Detector    : DROP_FRAC={DROP_FRAC}  HOLD={HOLD_S}s  MIN={MIN_STARTUP_S}s  MAX={MAX_STARTUP_S}s")
+    print(f"  Confirm     : {DROP_CONFIRM_S}s post-drop (no steady-state — Phase 2 uses live trace)")
+    print(f"  Worst-case  : {TOTAL_RUN_S}s/run  (was 160s, saved {160-TOTAL_RUN_S}s/run)")
+    labelled_runs = args.runs - (1 if args.discard_first else 0)
+    avg_run_s = 50
+    est = len(todo) * args.runs * avg_run_s / args.workers / 3600
+    print(f"  Est. time   : ~{est:.1f}h  ({len(todo)} × {args.runs} runs × ~{avg_run_s}s ÷ {args.workers})")
+    if args.discard_first:
+        print(f"  Labels from : {labelled_runs} warm run(s) per image")
+    print(f"  Output      : {args.output}")
+    print(f"{'═'*70}\n")
+
+    # ── Step 1: static metadata ───────────────────────────────────────────────
+    # Use 5 workers (not 20) to avoid ECR rate-limiting.
+    # Failed images are retried sequentially with a 2s gap before Step 2.
+    META_WORKERS = 5
+    print(f"Step 1: collecting static metadata (skopeo, {META_WORKERS} workers)...")
+    print(f"         (reduced from 20 → {META_WORKERS} to avoid ECR rate-limiting)")
+    static_map: Dict[str, Dict] = {}
+    failed_meta: List[str] = []
+
+    with ThreadPoolExecutor(max_workers=META_WORKERS) as ex:
+        futs = {ex.submit(extract_static_features, img): img for img in todo}
+        for i, fut in enumerate(as_completed(futs), 1):
+            img = futs[fut]
+            try:
+                row = fut.result()
+                if row:
+                    static_map[img] = row
+                    print(f"  [{i:3d}/{len(todo)}] ✓ {img[:58]}")
+                else:
+                    failed_meta.append(img)
+                    print(f"  [{i:3d}/{len(todo)}] ✗ {img[:58]}")
+            except Exception as e:
+                failed_meta.append(img)
+                print(f"  [{i:3d}/{len(todo)}] ✗ {img[:58]}: {e}")
+
+    # ── Retry failed metadata sequentially with back-off ──────────────────────
+    if failed_meta:
+        print(f"\n  {len(failed_meta)} failed. Retrying sequentially (2s gap)...")
+        still_failed: List[str] = []
+        for i, img in enumerate(failed_meta, 1):
+            time.sleep(2)  # back-off between retries
+            print(f"  [retry {i:2d}/{len(failed_meta)}] {img[:58]}")
+            try:
+                # Clear the cached None so extract_static_features tries again
+                with _meta_lock:
+                    _meta_cache.pop(img, None)
+                row = extract_static_features(img)
+                if row:
+                    static_map[img] = row
+                    print(f"    ✓ recovered")
+                else:
+                    still_failed.append(img)
+                    print(f"    ✗ still failing")
+            except Exception as e:
+                still_failed.append(img)
+                print(f"    ✗ error: {e}")
+
+        failed_meta = still_failed
+
+    if failed_meta:
+        FAILED_LOG.write_text("\n".join(failed_meta))
+        print(f"\n  {len(failed_meta)} permanently failed → {FAILED_LOG}")
+        print(f"  These images will be skipped. "
+              f"Dataset will have {len(static_map)} images.")
+    else:
+        print(f"\n  All images recovered after retry ✓")
+
+    # ── Create output directory ────────────────────────────────────────────────
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+
+    images_with_meta = list(static_map.keys())
+    print(f"\nMetadata: {len(images_with_meta)} OK  /  {len(failed_meta)} failed\n")
+
+    # Metadata-only mode: write CSV and exit
+    if args.metadata_only:
+        with open(args.output, "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=CSV_COLUMNS, extrasaction="ignore")
+            w.writeheader()
+            for row in static_map.values():
+                for col in TARGET_COLS:
+                    row.setdefault(col, "")
+                w.writerow(row)
+        print(f"Metadata saved → {args.output}")
+        return
+
+    # ── Step 2: runtime collection ────────────────────────────────────────────
+    print(f"Step 2: runtime collection (adaptive workers, CPU + memory)...")
+
+    sem     = Semaphore(args.workers)
+    lock    = Lock()
+    results: List[Dict] = []
+    counter = [0]
+    pool    = AdaptiveWorkerPool(args.workers)
+
+    # Open CSV for incremental writes
+    mode = "a" if args.resume else "w"
+    out_f = open(args.output, mode, newline="")
+    writer = csv.DictWriter(out_f, fieldnames=CSV_COLUMNS, extrasaction="ignore")
+    if not args.resume or not args.output.exists():
+        writer.writeheader()
+
+    def flush_result(row: Dict) -> None:
+        writer.writerow(row)
+        out_f.flush()
+
+    # Dispatch one thread per image; semaphore limits concurrency
+    threads: List[threading.Thread] = []
+    remaining = list(images_with_meta)
+
+    while remaining:
+        _ = pool.current()  # trigger adaptive adjustment (prints if changed)
+
+        # Reap finished threads
+        threads = [t for t in threads if t.is_alive()]
+
+        # Start new thread if capacity available
+        if len(threads) < pool.current() and remaining:
+            img = remaining.pop(0)
+            t = threading.Thread(
+                target=process_image,
+                args=(img, static_map[img], args.runs,
+                      sem, lock, results, counter, len(images_with_meta),
+                      args.discard_first),
+                daemon=True,
+            )
+            threads.append(t)
+            t.start()
+            time.sleep(0.3)  # stagger pulls to reduce simultaneous ECR requests
+        else:
+            time.sleep(0.1)
+
+    for t in threads:
+        t.join()
+
+    # Write completed results
+    for row in results:
+        flush_result(row)
+    out_f.close()
+
+    ok_count = sum(1 for r in results if r.get("runs_ok", 0) > 0)
+    mem_ok   = sum(1 for r in results if r.get("startup_mem_peak_mb", "") != "")
+
+    print(f"\n{'═'*70}")
+    print(f"COLLECTION COMPLETE")
+    print(f"  {ok_count}/{len(results)} images labelled  ·  {mem_ok} with memory data")
+    print(f"  Output : {args.output}")
+    print(f"  Traces : {TRACE_DIR}")
+    print(f"\nNext: python3 phase0_train_model.py --data {args.output}")
+    print(f"{'═'*70}\n")
+
+
+if __name__ == "__main__":
+    def _handle_sigint(sig, frame):
+        print("\n\nInterrupted — use --resume to continue.")
+        sys.exit(0)
+    signal.signal(signal.SIGINT, _handle_sigint)
+    main()
